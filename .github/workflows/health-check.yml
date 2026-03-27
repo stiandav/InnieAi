@@ -1,0 +1,49 @@
+name: Health Check
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run health check
+        env:
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
+        run: |
+          BASE_URL="${NEXT_PUBLIC_BASE_URL:-https://innieai.co}"
+          echo "Checking $BASE_URL..."
+
+          STATUS=$(curl -o /dev/null -s -w "%{http_code}" "$BASE_URL" --max-time 10)
+
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "301" ] && [ "$STATUS" != "302" ]; then
+            echo "ALERT: Site returned status $STATUS"
+
+            # Send alert via Resend
+            curl -s -X POST 'https://api.resend.com/emails' \
+              -H "Authorization: Bearer $RESEND_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"from\": \"$RESEND_FROM_EMAIL\",
+                \"to\": [\"$OWNER_EMAIL\"],
+                \"subject\": \"⚠️ InnieAI Health Check Failed\",
+                \"text\": \"Health check failed for $BASE_URL\\n\\nHTTP Status: $STATUS\\nTimestamp: $(date -u)\\n\\nPlease check your Vercel deployment.\"
+              }"
+
+            exit 1
+          fi
+
+          echo "✓ Site is healthy (status: $STATUS)"

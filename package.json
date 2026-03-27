@@ -1,0 +1,39 @@
+{
+  "name": "innieai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "lead-gen": "npx tsx scripts/lead-gen.ts",
+    "outreach": "npx tsx scripts/outreach.ts",
+    "weekly-reports": "npx tsx scripts/weekly-reports.ts",
+    "churn-check": "npx tsx scripts/churn-check.ts",
+    "upsell-check": "npx tsx scripts/upsell-check.ts",
+    "blog-publisher": "npx tsx scripts/blog-publisher.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
+    "@supabase/supabase-js": "^2.49.1",
+    "next": "14.2.29",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "resend": "^4.5.1",
+    "stripe": "^17.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "14.2.29",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

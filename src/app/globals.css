@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #0A0F1E;
+  --navy-light: #111827;
+  --navy-muted: #1E2A3B;
+  --cream: #F5F0E8;
+  --cream-dark: #EDE8E0;
+  --accent: #3B82F6;
+  --accent-hover: #2563EB;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--navy);
+  color: var(--cream);
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prose styles for blog/proposal content */
+.prose {
+  color: #D1D5DB;
+  max-width: 65ch;
+}
+
+.prose h1, .prose h2, .prose h3 {
+  color: #F5F0E8;
+  font-weight: 700;
+}
+
+.prose h1 { font-size: 2rem; margin-bottom: 1rem; }
+.prose h2 { font-size: 1.5rem; margin: 2rem 0 0.75rem; }
+.prose h3 { font-size: 1.25rem; margin: 1.5rem 0 0.5rem; }
+
+.prose p { margin-bottom: 1rem; line-height: 1.7; }
+.prose ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+.prose ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+.prose li { margin-bottom: 0.25rem; }
+.prose a { color: var(--accent); text-decoration: underline; }
+.prose strong { color: #F5F0E8; font-weight: 600; }
+.prose blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
+  color: #9CA3AF;
+  font-style: italic;
+  margin: 1.5rem 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--navy-light); }
+::-webkit-scrollbar-thumb { background: var(--navy-muted); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #374151; }
+
+/* Kanban drag */
+.kanban-card { cursor: grab; }
+.kanban-card:active { cursor: grabbing; }

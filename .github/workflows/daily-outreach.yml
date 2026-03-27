@@ -1,0 +1,36 @@
+name: Daily Email Outreach
+
+on:
+  schedule:
+    - cron: '0 17 * * *'  # 9am PST
+  workflow_dispatch:
+
+jobs:
+  outreach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run outreach script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          RESEND_DOMAIN: ${{ secrets.RESEND_DOMAIN }}
+          OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          CALCOM_LINK: ${{ secrets.CALCOM_LINK }}
+        run: npx tsx scripts/outreach.ts
