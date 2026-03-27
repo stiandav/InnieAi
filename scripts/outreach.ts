@@ -2,6 +2,9 @@
  * InnieAI Email Outreach Script
  * Run: npx tsx scripts/outreach.ts
  * GitHub Action: daily-outreach.yml (9am PST daily)
+ *
+ * Template priority: DB variant (email_template_variants) → static fallback
+ * The template-optimizer script improves variants weekly based on open/reply rates.
  */
 
 import { createScriptClient } from '../src/lib/supabase/server'
@@ -28,6 +31,40 @@ const STEP_DAYS: Record<number, number> = {
   4: 14, // Day 14: 14 days after step 1
 }
 
+// Substitute {{variable}} placeholders in DB-stored template strings
+function fillTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '')
+}
+
+type TemplateVariant = { subject: string; body: string }
+
+// Load all active variants once, keyed by "step:niche" and "step:all"
+async function loadActiveVariants(
+  supabase: ReturnType<typeof createScriptClient>
+): Promise<Map<string, TemplateVariant>> {
+  const map = new Map<string, TemplateVariant>()
+  try {
+    const { data } = await supabase
+      .from('email_template_variants')
+      .select('step, niche, subject, body')
+      .eq('is_active', true)
+    for (const row of data ?? []) {
+      map.set(`${row.step}:${row.niche}`, { subject: row.subject, body: row.body })
+    }
+  } catch {
+    // Table may not exist yet — degrade gracefully to static templates
+  }
+  return map
+}
+
+function getVariantForLead(
+  variants: Map<string, TemplateVariant>,
+  step: number,
+  niche: string
+): TemplateVariant | null {
+  return variants.get(`${step}:${niche}`) ?? variants.get(`${step}:all`) ?? null
+}
+
 async function sendFailureAlert(error: string) {
   await sendOwnerAlert(
     '⚠️ InnieAI Outreach Script Failed',
@@ -38,7 +75,6 @@ async function sendFailureAlert(error: string) {
 async function shouldSendStep(lead: Lead, step: number, supabase: ReturnType<typeof createScriptClient>): Promise<boolean> {
   if (step === 1) return lead.sequence_step === 0
 
-  // Check if previous step was sent and enough days have passed
   const { data: prevEmail } = await supabase
     .from('email_sequences')
     .select('sent_at, unsubscribed, bounced, replied')
@@ -58,7 +94,12 @@ async function main() {
   const supabase = createScriptClient()
   let emailsSent = 0
 
-  // Leads ready for outreach (have email, not invalid/churned/client)
+  // Load optimized template variants from DB (if any exist)
+  const variants = await loadActiveVariants(supabase)
+  if (variants.size > 0) {
+    console.log(`Loaded ${variants.size} optimized template variant(s) from DB`)
+  }
+
   const { data: leads } = await supabase
     .from('leads')
     .select('*')
@@ -75,18 +116,10 @@ async function main() {
 
   const leadIds = (leads as Lead[]).map((l) => l.id)
 
-  // Batch fetch unsubscribed lead IDs and already-sent steps to avoid N+1
+  // Batch fetch unsubscribed and already-sent to avoid N+1
   const [{ data: unsubRows }, { data: sentRows }] = await Promise.all([
-    supabase
-      .from('email_sequences')
-      .select('lead_id')
-      .in('lead_id', leadIds)
-      .eq('unsubscribed', true),
-    supabase
-      .from('email_sequences')
-      .select('lead_id, step')
-      .in('lead_id', leadIds)
-      .not('sent_at', 'is', null),
+    supabase.from('email_sequences').select('lead_id').in('lead_id', leadIds).eq('unsubscribed', true),
+    supabase.from('email_sequences').select('lead_id, step').in('lead_id', leadIds).not('sent_at', 'is', null),
   ])
 
   const unsubSet = new Set((unsubRows ?? []).map((r) => r.lead_id as string))
@@ -98,39 +131,57 @@ async function main() {
     if (unsubSet.has(lead.id)) continue
 
     const nextStep = lead.sequence_step + 1
-
     if (sentSet.has(`${lead.id}:${nextStep}`)) continue
 
     const canSend = await shouldSendStep(lead, nextStep, supabase)
     if (!canSend) continue
 
-    // Generate email content
+    const unsubUrl = `${BASE_URL}/api/email/unsubscribe?token=${lead.id}`
+
+    // Check for an AI-optimized variant first, fall back to static template
+    const variant = getVariantForLead(variants, nextStep, lead.niche)
+
     let emailContent: { subject: string; body: string }
     try {
-      if (nextStep === 1) {
-        const opener = await generateOutreachOpener(
-          lead.company_name,
-          lead.niche,
-          lead.city,
-          lead.rating,
-          lead.review_count
-        )
-        emailContent = getDay1Email(lead, opener, CALCOM_LINK)
-      } else if (nextStep === 2) {
-        const insight = await generateNicheInsight(lead.niche, lead.city)
-        emailContent = getDay3Email(lead, insight, CALCOM_LINK)
-      } else if (nextStep === 3) {
-        emailContent = getDay7Email(lead, CALCOM_LINK)
+      if (variant) {
+        // Fill {{placeholders}} in the stored variant
+        const templateVars: Record<string, string> = {
+          first_name: lead.contact_name?.split(' ')[0] ?? lead.company_name,
+          company_name: lead.company_name,
+          city: lead.city,
+          niche: lead.niche,
+          calcom_link: CALCOM_LINK,
+          unsub_link: unsubUrl,
+          personalized_opener: nextStep === 1
+            ? await generateOutreachOpener(lead.company_name, lead.niche, lead.city, lead.rating, lead.review_count)
+            : '',
+          niche_insight: nextStep === 2
+            ? await generateNicheInsight(lead.niche, lead.city)
+            : '',
+        }
+        emailContent = {
+          subject: fillTemplate(variant.subject, templateVars),
+          body: fillTemplate(variant.body, templateVars),
+        }
       } else {
-        emailContent = getDay14Email(lead, CALCOM_LINK)
+        // Static templates
+        if (nextStep === 1) {
+          const opener = await generateOutreachOpener(lead.company_name, lead.niche, lead.city, lead.rating, lead.review_count)
+          emailContent = getDay1Email(lead, opener, CALCOM_LINK)
+        } else if (nextStep === 2) {
+          const insight = await generateNicheInsight(lead.niche, lead.city)
+          emailContent = getDay3Email(lead, insight, CALCOM_LINK)
+        } else if (nextStep === 3) {
+          emailContent = getDay7Email(lead, CALCOM_LINK)
+        } else {
+          emailContent = getDay14Email(lead, CALCOM_LINK)
+        }
       }
     } catch (err) {
       console.error(`Failed to generate email for ${lead.company_name}:`, err)
       continue
     }
 
-    // Add open tracking pixel
-    const trackingPixelUrl = `${BASE_URL}/api/track/open`
     const { data: seqRecord } = await supabase
       .from('email_sequences')
       .insert({
@@ -145,13 +196,14 @@ async function main() {
 
     if (!seqRecord) continue
 
-    const trackingHtml = `<html><body><pre style="font-family:sans-serif;white-space:pre-wrap">${emailContent.body}</pre><img src="${trackingPixelUrl}?id=${seqRecord.id}" width="1" height="1" /></body></html>`
+    const trackingHtml = `<html><body><pre style="font-family:sans-serif;white-space:pre-wrap">${emailContent.body}</pre><img src="${BASE_URL}/api/track/open?id=${seqRecord.id}" width="1" height="1" /></body></html>`
 
     const result = await sendEmail({
       to: lead.email,
       subject: emailContent.subject,
       text: emailContent.body,
       html: trackingHtml,
+      unsubscribeUrl: unsubUrl,
     })
 
     if (result?.id) {
@@ -166,10 +218,9 @@ async function main() {
         .eq('id', lead.id)
 
       emailsSent++
-      console.log(`✓ Sent step ${nextStep} to ${lead.company_name} (${lead.email})`)
+      console.log(`✓ Sent step ${nextStep} to ${lead.company_name} (${lead.email})${variant ? ' [optimized]' : ''}`)
     }
 
-    // Rate limit
     await new Promise((r) => setTimeout(r, 500))
   }
 

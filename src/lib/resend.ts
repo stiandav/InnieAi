@@ -18,6 +18,8 @@ export async function sendEmail({
   html,
   from,
   tags,
+  unsubscribeUrl,
+  replyTo,
 }: {
   to: string
   subject: string
@@ -25,18 +27,28 @@ export async function sendEmail({
   html?: string
   from?: string
   tags?: Array<{ name: string; value: string }>
+  unsubscribeUrl?: string
+  replyTo?: string
 }): Promise<{ id: string } | null> {
   const resend = getResend()
-  const fromAddr = from ?? process.env.RESEND_FROM_EMAIL ?? 'hello@innieai.co'
+  const fromAddr = from ?? process.env.RESEND_FROM_EMAIL ?? 'Stian from InnieAI <stian@innieai.co>'
+
+  const headers: Record<string, string> = {}
+  if (unsubscribeUrl) {
+    headers['List-Unsubscribe'] = `<${unsubscribeUrl}>`
+    headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+  }
 
   try {
     const result = await resend.emails.send({
       from: fromAddr,
       to,
+      reply_to: replyTo ?? (process.env.OWNER_EMAIL || undefined),
       subject,
       text,
       html,
       tags,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
     })
     return result.data
   } catch (err) {

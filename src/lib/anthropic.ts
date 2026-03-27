@@ -152,6 +152,52 @@ Key upgrade benefit: more leads per month + additional services.`,
   )
 }
 
+export async function optimizeEmailTemplate(params: {
+  step: number
+  niche: string
+  currentSubject: string
+  currentBody: string
+  sendCount: number
+  openRate: number
+  replyRate: number
+  unsubRate: number
+}): Promise<{ subject: string; body: string }> {
+  const result = await generateText(
+    `You are an expert cold email copywriter. You improve B2B cold email templates for local business outreach.
+Rules:
+- Keep emails under 150 words
+- Plain text only — no HTML, no bullet points, no headers
+- Conversational, direct tone — sounds like a real person, not marketing
+- Always end with a clear single CTA (booking link as {{calcom_link}})
+- Always include unsubscribe as the last line using {{unsub_link}}
+- Use {{placeholders}} for dynamic content: {{first_name}}, {{company_name}}, {{city}}, {{niche}}, {{calcom_link}}, {{unsub_link}}
+- Step 1 emails may use {{personalized_opener}} as the first line
+- Step 2 emails may use {{niche_insight}} as the first line
+Return JSON only: { "subject": "...", "body": "..." }`,
+    `You are improving a step ${params.step} cold email for the "${params.niche}" niche.
+
+Current performance (out of ${params.sendCount} sends):
+- Open rate: ${(params.openRate * 100).toFixed(1)}%
+- Reply rate: ${(params.replyRate * 100).toFixed(1)}%
+- Unsubscribe rate: ${(params.unsubRate * 100).toFixed(1)}%
+
+Current subject: ${params.currentSubject}
+Current body:
+${params.currentBody}
+
+Rewrite this email to improve open rate and reply rate. Focus on the biggest weakness in the current version. Keep the same step in the sequence (${params.step === 1 ? 'first contact' : params.step === 2 ? 'follow-up with insight' : params.step === 3 ? 'social proof follow-up' : params.step === 4 ? 'final breakup email' : 're-engagement'}).`,
+    600
+  )
+
+  try {
+    const parsed = JSON.parse(result) as { subject: string; body: string }
+    if (!parsed.subject || !parsed.body) throw new Error('Missing fields')
+    return parsed
+  } catch {
+    throw new Error(`Claude returned non-JSON: ${result.slice(0, 200)}`)
+  }
+}
+
 export async function generateBlogPost(niche: string): Promise<{ title: string; content: string; metaDescription: string }> {
   const contentText = await generateText(
     `You are an expert content writer specializing in AI automation and local business marketing.
