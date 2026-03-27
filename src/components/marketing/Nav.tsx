@@ -16,7 +16,7 @@ export function Nav() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-navy/90 backdrop-blur-md border-b border-white/[0.06]' : ''
+        scrolled ? 'bg-navy/95 backdrop-blur-md border-b border-white/[0.06]' : ''
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -25,25 +25,17 @@ export function Nav() {
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
-          <Link href="#services" className="text-cream/60 hover:text-cream text-sm transition-colors">
-            Services
-          </Link>
-          <Link href="#pricing" className="text-cream/60 hover:text-cream text-sm transition-colors">
-            Pricing
-          </Link>
-          <Link href="/blog" className="text-cream/60 hover:text-cream text-sm transition-colors">
-            Blog
-          </Link>
-          <Link href="/partners" className="text-cream/60 hover:text-cream text-sm transition-colors">
-            Partners
-          </Link>
+          <Link href="#services" className="text-cream/60 hover:text-cream text-sm transition-colors">Services</Link>
+          <Link href="#who" className="text-cream/60 hover:text-cream text-sm transition-colors">Industries</Link>
+          <Link href="#pricing" className="text-cream/60 hover:text-cream text-sm transition-colors">Pricing</Link>
+          <Link href="/blog" className="text-cream/60 hover:text-cream text-sm transition-colors">Blog</Link>
           <a
             href={process.env.NEXT_PUBLIC_CALCOM_LINK || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-accent hover:bg-accent-hover text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+            className="bg-accent hover:bg-accent-hover text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-all hover:-translate-y-0.5 shadow-md shadow-accent/20"
           >
-            Book a Call
+            Free Audit Call →
           </a>
         </div>
 
@@ -54,9 +46,9 @@ export function Nav() {
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             {mobileOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
             ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
             )}
           </svg>
         </button>
@@ -65,16 +57,16 @@ export function Nav() {
       {mobileOpen && (
         <div className="md:hidden bg-navy-light border-t border-white/[0.06] px-6 py-4 flex flex-col gap-4">
           <Link href="#services" onClick={() => setMobileOpen(false)} className="text-cream/70 hover:text-cream text-sm">Services</Link>
+          <Link href="#who" onClick={() => setMobileOpen(false)} className="text-cream/70 hover:text-cream text-sm">Industries</Link>
           <Link href="#pricing" onClick={() => setMobileOpen(false)} className="text-cream/70 hover:text-cream text-sm">Pricing</Link>
           <Link href="/blog" onClick={() => setMobileOpen(false)} className="text-cream/70 hover:text-cream text-sm">Blog</Link>
-          <Link href="/partners" onClick={() => setMobileOpen(false)} className="text-cream/70 hover:text-cream text-sm">Partners</Link>
           <a
             href={process.env.NEXT_PUBLIC_CALCOM_LINK || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-accent text-white text-sm font-semibold px-5 py-2.5 rounded-lg text-center"
+            className="bg-accent text-white text-sm font-semibold px-5 py-3 rounded-lg text-center"
           >
-            Book a Call
+            Free Audit Call →
           </a>
         </div>
       )}
