@@ -37,6 +37,18 @@ export async function POST(
     biggestBottleneck: string
   }
 
+  // Basic length guards
+  if (
+    body.goals?.length > 2000 ||
+    body.biggestBottleneck?.length > 2000 ||
+    body.currentTools?.length > 500 ||
+    body.mainContact?.length > 100 ||
+    body.mainContactPhone?.length > 30 ||
+    body.monthlyRevenue?.length > 50
+  ) {
+    return NextResponse.json({ success: false, error: 'Input too long' }, { status: 400 })
+  }
+
   const supabase = createServerClient()
 
   const { data: client } = await supabase
@@ -54,7 +66,7 @@ export async function POST(
 
   const { error } = await supabase
     .from('clients')
-    .update({ onboarding_complete: true, status: 'Active' })
+    .update({ onboarding_complete: true, status: 'Active', notes })
     .eq('id', client.id)
 
   if (error) {

@@ -17,6 +17,10 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'Name and email are required' }, { status: 400 })
   }
 
+  if (body.name.length > 100 || body.email.length > 254) {
+    return NextResponse.json({ success: false, error: 'Input too long' }, { status: 400 })
+  }
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(body.email)) {
     return NextResponse.json({ success: false, error: 'Invalid email address' }, { status: 400 })

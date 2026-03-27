@@ -35,7 +35,7 @@ export async function GET(
       supabase
         .from('leads')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'Active Client')
+        .not('status', 'in', '("Invalid")')
         .gte('created_at', startOfMonth.toISOString()),
       supabase
         .from('email_sequences')

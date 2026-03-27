@@ -9,6 +9,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Missing fields' }, { status: 400 })
   }
 
+  if (message.length > 5000) {
+    return NextResponse.json({ success: false, error: 'Message too long' }, { status: 400 })
+  }
+
   const supabase = createServerClient()
   const { data: client } = await supabase
     .from('clients')

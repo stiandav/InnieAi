@@ -73,30 +73,33 @@ async function main() {
     return
   }
 
+  const leadIds = (leads as Lead[]).map((l) => l.id)
+
+  // Batch fetch unsubscribed lead IDs and already-sent steps to avoid N+1
+  const [{ data: unsubRows }, { data: sentRows }] = await Promise.all([
+    supabase
+      .from('email_sequences')
+      .select('lead_id')
+      .in('lead_id', leadIds)
+      .eq('unsubscribed', true),
+    supabase
+      .from('email_sequences')
+      .select('lead_id, step')
+      .in('lead_id', leadIds)
+      .not('sent_at', 'is', null),
+  ])
+
+  const unsubSet = new Set((unsubRows ?? []).map((r) => r.lead_id as string))
+  const sentSet = new Set((sentRows ?? []).map((r) => `${r.lead_id}:${r.step}`))
+
   for (const lead of leads as Lead[]) {
     if (emailsSent >= MAX_EMAILS_PER_DAY) break
     if (!lead.email) continue
-
-    // Check unsubscribed
-    const { data: unsub } = await supabase
-      .from('email_sequences')
-      .select('id')
-      .eq('lead_id', lead.id)
-      .eq('unsubscribed', true)
-      .limit(1)
-    if (unsub && unsub.length > 0) continue
+    if (unsubSet.has(lead.id)) continue
 
     const nextStep = lead.sequence_step + 1
 
-    // Check if already sent this step
-    const { data: alreadySent } = await supabase
-      .from('email_sequences')
-      .select('id')
-      .eq('lead_id', lead.id)
-      .eq('step', nextStep)
-      .not('sent_at', 'is', null)
-      .limit(1)
-    if (alreadySent && alreadySent.length > 0) continue
+    if (sentSet.has(`${lead.id}:${nextStep}`)) continue
 
     const canSend = await shouldSendStep(lead, nextStep, supabase)
     if (!canSend) continue

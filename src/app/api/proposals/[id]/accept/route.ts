@@ -66,9 +66,10 @@ export async function POST(
     },
   })
 
+  // Status stays pending until Stripe webhook confirms payment
   await supabase
     .from('proposals')
-    .update({ stripe_checkout_url: session.url, status: 'Accepted' })
+    .update({ stripe_checkout_url: session.url, status: 'Pending Payment' })
     .eq('id', id)
 
   return NextResponse.json({
