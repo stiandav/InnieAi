@@ -18,16 +18,19 @@ async function getDashboardData() {
       supabase.from('proposals').select('*').order('created_at', { ascending: false }),
     ])
 
-    const activeClients = (clients ?? []).filter((c: Client) => c.status === 'Active')
-    const mrr = activeClients.reduce((sum: number, c: Client) => sum + c.mrr, 0)
-    const proposalsSent = (proposals ?? []).filter((p: Proposal) => p.status !== 'Draft').length
-    const proposalsAccepted = (proposals ?? []).filter((p: Proposal) => p.status === 'Accepted').length
+    const allClients: Client[] = (clients as Client[]) ?? []
+    const allProposals: Proposal[] = (proposals as Proposal[]) ?? []
+
+    const activeClients = allClients.filter(c => c.status === 'Active')
+    const mrr = activeClients.reduce((sum, c) => sum + c.mrr, 0)
+    const proposalsSent = allProposals.filter(p => p.status !== 'Draft').length
+    const proposalsAccepted = allProposals.filter(p => p.status === 'Accepted').length
     const closeRate = proposalsSent > 0 ? Math.round((proposalsAccepted / proposalsSent) * 100) : 0
 
     const actionItems = []
 
     // Churn risks
-    const churnRisks = (clients ?? []).filter((c: Client) => c.churn_score >= 7)
+    const churnRisks = allClients.filter(c => c.churn_score >= 7)
     for (const c of churnRisks.slice(0, 3)) {
       actionItems.push({
         type: 'churn' as const,
@@ -39,8 +42,8 @@ async function getDashboardData() {
 
     // Stale proposals (viewed > 48h ago, not accepted)
     const twoDaysAgo = new Date(Date.now() - 48 * 3600000).toISOString()
-    const staleProposals = (proposals ?? []).filter(
-      (p: Proposal) => p.status === 'Viewed' && p.first_viewed_at && p.first_viewed_at < twoDaysAgo
+    const staleProposals = allProposals.filter(
+      p => p.status === 'Viewed' && p.first_viewed_at && p.first_viewed_at < twoDaysAgo
     )
     for (const p of staleProposals.slice(0, 3)) {
       actionItems.push({
@@ -52,7 +55,7 @@ async function getDashboardData() {
     }
 
     // Payment issues
-    const paymentIssues = (clients ?? []).filter((c: Client) => c.status === 'Payment Issue')
+    const paymentIssues = allClients.filter(c => c.status === 'Payment Issue')
     for (const c of paymentIssues.slice(0, 3)) {
       actionItems.push({
         type: 'payment' as const,

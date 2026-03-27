@@ -153,23 +153,31 @@ export interface Referral {
   created_at: string
 }
 
+type TableDef<Row, Insert, Update> = {
+  Row: Row
+  Insert: Insert
+  Update: Update
+  Relationships: []
+}
+
 // Supabase Database type for createClient
 export interface Database {
   public: {
     Tables: {
-      leads: { Row: Lead; Insert: Omit<Lead, 'id' | 'created_at' | 'updated_at'>; Update: Partial<Lead> }
-      clients: { Row: Client; Insert: Omit<Client, 'id' | 'created_at' | 'portal_token'>; Update: Partial<Client> }
-      proposals: { Row: Proposal; Insert: Omit<Proposal, 'id' | 'created_at'>; Update: Partial<Proposal> }
-      email_sequences: { Row: EmailSequence; Insert: Omit<EmailSequence, 'id' | 'created_at'>; Update: Partial<EmailSequence> }
-      reports: { Row: Report; Insert: Omit<Report, 'id' | 'created_at'>; Update: Partial<Report> }
-      testimonials: { Row: Testimonial; Insert: Omit<Testimonial, 'id' | 'created_at' | 'token'>; Update: Partial<Testimonial> }
-      case_studies: { Row: CaseStudy; Insert: Omit<CaseStudy, 'id' | 'created_at'>; Update: Partial<CaseStudy> }
-      posts: { Row: Post; Insert: Omit<Post, 'id' | 'created_at'>; Update: Partial<Post> }
-      affiliates: { Row: Affiliate; Insert: Omit<Affiliate, 'id' | 'created_at'>; Update: Partial<Affiliate> }
-      referrals: { Row: Referral; Insert: Omit<Referral, 'id' | 'created_at'>; Update: Partial<Referral> }
+      leads: TableDef<Lead, Omit<Lead, 'id' | 'created_at' | 'updated_at'>, Partial<Lead>>
+      clients: TableDef<Client, Omit<Client, 'id' | 'created_at' | 'portal_token'>, Partial<Client>>
+      proposals: TableDef<Proposal, Omit<Proposal, 'id' | 'created_at'>, Partial<Proposal>>
+      email_sequences: TableDef<EmailSequence, Omit<EmailSequence, 'id' | 'created_at'>, Partial<EmailSequence>>
+      reports: TableDef<Report, Omit<Report, 'id' | 'created_at'>, Partial<Report>>
+      testimonials: TableDef<Testimonial, Omit<Testimonial, 'id' | 'created_at' | 'token'>, Partial<Testimonial>>
+      case_studies: TableDef<CaseStudy, Omit<CaseStudy, 'id' | 'created_at'>, Partial<CaseStudy>>
+      posts: TableDef<Post, Omit<Post, 'id' | 'created_at'>, Partial<Post>>
+      affiliates: TableDef<Affiliate, Omit<Affiliate, 'id' | 'created_at'>, Partial<Affiliate>>
+      referrals: TableDef<Referral, Omit<Referral, 'id' | 'created_at'>, Partial<Referral>>
     }
     Views: Record<string, never>
     Functions: Record<string, never>
     Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }
