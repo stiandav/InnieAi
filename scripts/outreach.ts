@@ -19,7 +19,7 @@ import {
 } from '../src/lib/anthropic'
 import type { Lead } from '../src/types/database'
 
-const MAX_EMAILS_PER_DAY = 40
+const MAX_EMAILS_PER_DAY = 10 // warm-up: increase 5-10/day each week toward 40
 const CALCOM_LINK = process.env.CALCOM_LINK ?? 'https://cal.com/innieai'
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://innieai.co'
 
