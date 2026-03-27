@@ -16,31 +16,31 @@ export function Nav() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-navy/95 backdrop-blur-md border-b border-white/[0.06]' : ''
+        scrolled ? 'bg-canvas/95 backdrop-blur-sm border-b border-ink/8' : ''
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="text-cream font-bold text-xl tracking-tight">
-          Innie<span className="text-accent">AI</span>
+        <Link href="/" className="font-display text-ink font-bold text-xl tracking-tight">
+          Innie<span className="text-brand">AI</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
-          <Link href="#services" className="text-cream/60 hover:text-cream text-sm transition-colors">Services</Link>
-          <Link href="#who" className="text-cream/60 hover:text-cream text-sm transition-colors">Industries</Link>
-          <Link href="#pricing" className="text-cream/60 hover:text-cream text-sm transition-colors">Pricing</Link>
-          <Link href="/blog" className="text-cream/60 hover:text-cream text-sm transition-colors">Blog</Link>
+          <Link href="#services" className="text-muted hover:text-ink text-sm transition-colors">Services</Link>
+          <Link href="#who" className="text-muted hover:text-ink text-sm transition-colors">Industries</Link>
+          <Link href="#pricing" className="text-muted hover:text-ink text-sm transition-colors">Pricing</Link>
+          <Link href="/blog" className="text-muted hover:text-ink text-sm transition-colors">Blog</Link>
           <a
             href={process.env.NEXT_PUBLIC_CALCOM_LINK || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-accent hover:bg-accent-hover text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-all hover:-translate-y-0.5 shadow-md shadow-accent/20"
+            className="bg-brand hover:bg-brand-hover text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-all hover:-translate-y-0.5 shadow-sm"
           >
             Free Audit Call →
           </a>
         </div>
 
         <button
-          className="md:hidden text-cream/60 hover:text-cream"
+          className="md:hidden text-muted hover:text-ink"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
         >
@@ -55,16 +55,16 @@ export function Nav() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden bg-navy-light border-t border-white/[0.06] px-6 py-4 flex flex-col gap-4">
-          <Link href="#services" onClick={() => setMobileOpen(false)} className="text-cream/70 hover:text-cream text-sm">Services</Link>
-          <Link href="#who" onClick={() => setMobileOpen(false)} className="text-cream/70 hover:text-cream text-sm">Industries</Link>
-          <Link href="#pricing" onClick={() => setMobileOpen(false)} className="text-cream/70 hover:text-cream text-sm">Pricing</Link>
-          <Link href="/blog" onClick={() => setMobileOpen(false)} className="text-cream/70 hover:text-cream text-sm">Blog</Link>
+        <div className="md:hidden bg-canvas border-t border-ink/8 px-6 py-4 flex flex-col gap-4">
+          <Link href="#services" onClick={() => setMobileOpen(false)} className="text-muted hover:text-ink text-sm">Services</Link>
+          <Link href="#who" onClick={() => setMobileOpen(false)} className="text-muted hover:text-ink text-sm">Industries</Link>
+          <Link href="#pricing" onClick={() => setMobileOpen(false)} className="text-muted hover:text-ink text-sm">Pricing</Link>
+          <Link href="/blog" onClick={() => setMobileOpen(false)} className="text-muted hover:text-ink text-sm">Blog</Link>
           <a
             href={process.env.NEXT_PUBLIC_CALCOM_LINK || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-accent text-white text-sm font-semibold px-5 py-3 rounded-lg text-center"
+            className="bg-brand text-white text-sm font-semibold px-5 py-3 rounded-lg text-center"
           >
             Free Audit Call →
           </a>

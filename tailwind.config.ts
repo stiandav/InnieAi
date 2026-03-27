@@ -9,6 +9,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        canvas: '#FAFAF7',
+        surface: '#F2EEE6',
+        ink: '#0F1110',
+        muted: '#6B6760',
+        brand: {
+          DEFAULT: '#1A6B44',
+          hover: '#155838',
+          light: '#E8F3EC',
+        },
+        // Keep legacy aliases so admin/dashboard components don't break
         navy: {
           DEFAULT: '#0A0F1E',
           light: '#111827',
@@ -25,11 +35,14 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        // legacy
+        inter: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
       },
-      backgroundImage: {
-        'gradient-navy': 'linear-gradient(135deg, #0A0F1E 0%, #111827 100%)',
-        'gradient-accent': 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+      letterSpacing: {
+        tighter: '-0.03em',
+        tight: '-0.015em',
       },
     },
   },

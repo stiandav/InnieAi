@@ -3,6 +3,15 @@
 @tailwind utilities;
 
 :root {
+  --canvas: #FAFAF7;
+  --surface: #F2EEE6;
+  --ink: #0F1110;
+  --muted: #6B6760;
+  --brand: #1A6B44;
+  --brand-hover: #155838;
+  --brand-light: #E8F3EC;
+
+  /* legacy — used by admin/dashboard */
   --navy: #0A0F1E;
   --navy-light: #111827;
   --navy-muted: #1E2A3B;
@@ -21,21 +30,22 @@ html {
 }
 
 body {
-  background-color: var(--navy);
-  color: var(--cream);
-  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* Prose styles for blog/proposal content */
 .prose {
-  color: #D1D5DB;
+  color: #374151;
   max-width: 65ch;
 }
 
 .prose h1, .prose h2, .prose h3 {
-  color: #F5F0E8;
+  color: var(--ink);
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 700;
 }
 
@@ -47,21 +57,21 @@ body {
 .prose ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
 .prose ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
 .prose li { margin-bottom: 0.25rem; }
-.prose a { color: var(--accent); text-decoration: underline; }
-.prose strong { color: #F5F0E8; font-weight: 600; }
+.prose a { color: var(--brand); text-decoration: underline; }
+.prose strong { color: var(--ink); font-weight: 600; }
 .prose blockquote {
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--brand);
   padding-left: 1rem;
-  color: #9CA3AF;
+  color: var(--muted);
   font-style: italic;
   margin: 1.5rem 0;
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--navy-light); }
-::-webkit-scrollbar-thumb { background: var(--navy-muted); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #374151; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: #D5CFCA; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #B8B2AC; }
 
 /* Kanban drag */
 .kanban-card { cursor: grab; }

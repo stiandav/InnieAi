@@ -49,28 +49,28 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
-    <section id="faq" className="py-32 bg-navy-light">
+    <section id="faq" className="py-32 bg-canvas">
       <div className="max-w-3xl mx-auto px-6">
         <div className="text-center mb-16">
-          <p className="text-accent font-semibold text-sm uppercase tracking-widest mb-4">FAQ</p>
-          <h2 className="text-4xl md:text-5xl font-bold text-cream">Common questions</h2>
+          <p className="text-brand font-semibold text-sm uppercase tracking-widest mb-4">FAQ</p>
+          <h2 className="font-display text-4xl md:text-5xl font-bold text-ink tracking-tight">Common questions</h2>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {faqs.map((faq, i) => (
             <div
               key={i}
-              className="bg-navy border border-white/[0.06] rounded-xl overflow-hidden"
+              className="bg-surface border border-ink/8 rounded-xl overflow-hidden"
             >
               <button
                 className="w-full flex items-center justify-between px-6 py-5 text-left group"
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
               >
-                <span className="font-medium text-cream group-hover:text-cream/90 pr-4 text-sm md:text-base">
+                <span className="font-medium text-ink group-hover:text-brand pr-4 text-sm md:text-base transition-colors">
                   {faq.q}
                 </span>
                 <svg
-                  className={`w-5 h-5 text-cream/40 flex-shrink-0 transition-transform duration-200 ${
+                  className={`w-5 h-5 text-muted flex-shrink-0 transition-transform duration-200 ${
                     openIndex === i ? 'rotate-45' : ''
                   }`}
                   fill="none"
@@ -81,8 +81,8 @@ export function FAQ() {
                 </svg>
               </button>
               {openIndex === i && (
-                <div className="px-6 pb-5">
-                  <p className="text-cream/60 text-sm leading-relaxed">{faq.a}</p>
+                <div className="px-6 pb-5 border-t border-ink/6">
+                  <p className="text-muted text-sm leading-relaxed pt-4">{faq.a}</p>
                 </div>
               )}
             </div>

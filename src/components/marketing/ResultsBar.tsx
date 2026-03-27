@@ -49,15 +49,15 @@ function CountUp({ target, suffix, prefix, duration = 1800 }: { target: number; 
 
 export function ResultsBar() {
   return (
-    <section className="py-16 bg-navy border-b border-white/[0.06]">
+    <section className="py-16 bg-canvas border-b border-ink/8">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 md:divide-x md:divide-ink/8">
           {stats.map((stat, i) => (
-            <div key={i} className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-accent mb-2 tabular-nums">
+            <div key={i} className="text-center px-4">
+              <div className="font-display text-4xl md:text-5xl font-bold text-brand mb-2 tabular-nums tracking-tight">
                 <CountUp target={stat.value} suffix={stat.suffix} prefix={stat.prefix} />
               </div>
-              <p className="text-cream/50 text-sm leading-snug">{stat.label}</p>
+              <p className="text-muted text-sm leading-snug">{stat.label}</p>
             </div>
           ))}
         </div>

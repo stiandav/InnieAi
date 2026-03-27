@@ -26,56 +26,57 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-32 bg-navy">
+    <section id="how-it-works" className="py-32 bg-surface">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-20">
-          <p className="text-accent font-semibold text-sm uppercase tracking-widest mb-4">The Process</p>
-          <h2 className="text-4xl md:text-5xl font-bold text-cream mb-6">
+          <p className="text-brand font-semibold text-sm uppercase tracking-widest mb-4">The Process</p>
+          <h2 className="font-display text-4xl md:text-5xl font-bold text-ink mb-6 tracking-tight">
             From audit to automated<br />in under two weeks
           </h2>
-          <p className="text-xl text-cream/50 max-w-xl mx-auto">
+          <p className="text-xl text-muted max-w-xl mx-auto">
             Three steps. No tech skills needed. No long-term commitment required.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          <div className="hidden md:block absolute top-10 left-[calc(16.67%+32px)] right-[calc(16.67%+32px)] h-px bg-gradient-to-r from-transparent via-accent/25 to-transparent" />
+          {/* Connector line */}
+          <div className="hidden md:block absolute top-10 left-[calc(16.67%+32px)] right-[calc(16.67%+32px)] h-px bg-ink/10" />
 
           {steps.map((step, i) => (
             <div key={i} className="relative flex flex-col">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-accent font-bold text-lg tabular-nums">{step.number}</span>
+                <div className="w-16 h-16 rounded-xl bg-brand-light border border-brand/15 flex items-center justify-center flex-shrink-0">
+                  <span className="font-display text-brand font-bold text-xl tabular-nums">{step.number}</span>
                 </div>
                 <div>
-                  <div className="text-accent/60 text-xs font-semibold uppercase tracking-widest">{step.duration}</div>
-                  <h3 className="text-cream font-semibold text-xl">{step.title}</h3>
+                  <div className="text-brand/70 text-xs font-semibold uppercase tracking-widest">{step.duration}</div>
+                  <h3 className="font-display text-ink font-semibold text-xl tracking-tight">{step.title}</h3>
                 </div>
               </div>
 
-              <p className="text-cream/55 leading-relaxed text-sm mb-4">{step.description}</p>
+              <p className="text-muted leading-relaxed text-sm mb-4">{step.description}</p>
 
-              <div className="mt-auto flex items-start gap-2 bg-accent/5 border border-accent/15 rounded-xl px-4 py-3">
-                <svg className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="mt-auto flex items-start gap-2 bg-canvas border border-ink/8 rounded-lg px-4 py-3">
+                <svg className="w-4 h-4 text-brand flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                <p className="text-accent/70 text-xs leading-relaxed">{step.detail}</p>
+                <p className="text-muted text-xs leading-relaxed">{step.detail}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* What not working with us looks like */}
-        <div className="mt-20 rounded-2xl border border-red-500/15 bg-red-500/[0.04] p-8">
+        {/* Cost-of-inaction callout */}
+        <div className="mt-20 rounded-xl border border-rose-200 bg-rose-50 p-8">
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
               </svg>
             </div>
             <div>
-              <h4 className="text-cream font-semibold mb-2">What happens if you don&apos;t automate</h4>
-              <p className="text-cream/50 text-sm leading-relaxed">
+              <h4 className="font-display text-ink font-semibold mb-2 tracking-tight">What happens if you don&apos;t automate</h4>
+              <p className="text-muted text-sm leading-relaxed">
                 The average local business loses 3–5 potential clients per week to slow follow-up alone. At $2,000–$5,000 per client, that&apos;s $300k–$1.3M in annual revenue walking out the door. InnieAI pays for itself with the first 1–2 clients it helps you close.
               </p>
             </div>
