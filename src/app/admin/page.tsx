@@ -8,14 +8,25 @@ async function getDashboardData() {
   try {
     const supabase = createServerClient()
 
+    const startOfLastMonth = new Date()
+    startOfLastMonth.setDate(1)
+    startOfLastMonth.setMonth(startOfLastMonth.getMonth() - 1)
+    startOfLastMonth.setHours(0, 0, 0, 0)
+
+    const startOfThisMonth = new Date()
+    startOfThisMonth.setDate(1)
+    startOfThisMonth.setHours(0, 0, 0, 0)
+
     const [
       { data: clients },
       { data: leads },
       { data: proposals },
+      { data: lastMonthClients },
     ] = await Promise.all([
       supabase.from('clients').select('*').in('status', ['Active', 'Onboarding', 'Payment Issue']),
       supabase.from('leads').select('id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
       supabase.from('proposals').select('*').order('created_at', { ascending: false }),
+      supabase.from('clients').select('mrr').eq('status', 'Active').lt('created_at', startOfThisMonth.toISOString()),
     ])
 
     const allClients: Client[] = (clients as Client[]) ?? []
@@ -23,6 +34,12 @@ async function getDashboardData() {
 
     const activeClients = allClients.filter(c => c.status === 'Active')
     const mrr = activeClients.reduce((sum, c) => sum + c.mrr, 0)
+    const lastMrr = ((lastMonthClients ?? []) as { mrr: number }[]).reduce((sum, c) => sum + c.mrr, 0)
+    const mrrDelta = mrr - lastMrr
+    const mrrChange = mrrDelta === 0
+      ? 'No change vs last month'
+      : `${mrrDelta > 0 ? '+' : ''}$${Math.abs(mrrDelta / 100).toLocaleString()} vs last month`
+
     const proposalsSent = allProposals.filter(p => p.status !== 'Draft').length
     const proposalsAccepted = allProposals.filter(p => p.status === 'Accepted').length
     const closeRate = proposalsSent > 0 ? Math.round((proposalsAccepted / proposalsSent) * 100) : 0
@@ -67,6 +84,8 @@ async function getDashboardData() {
 
     return {
       mrr,
+      mrrChange,
+      mrrChangePositive: mrrDelta >= 0,
       activeClientCount: activeClients.length,
       leadsThisWeek: (leads ?? []).length,
       proposalsSent,
@@ -76,6 +95,8 @@ async function getDashboardData() {
   } catch {
     return {
       mrr: 0,
+      mrrChange: '',
+      mrrChangePositive: true,
       activeClientCount: 0,
       leadsThisWeek: 0,
       proposalsSent: 0,
@@ -89,7 +110,7 @@ export default async function AdminDashboard() {
   const data = await getDashboardData()
 
   const kpis = [
-    { label: 'MRR', value: `$${(data.mrr / 100).toLocaleString()}`, change: '+$2,500 this month', changePositive: true },
+    { label: 'MRR', value: `$${(data.mrr / 100).toLocaleString()}`, change: data.mrrChange, changePositive: data.mrrChangePositive },
     { label: 'Active Clients', value: data.activeClientCount },
     { label: 'Leads This Week', value: data.leadsThisWeek, change: 'vs 47 last week', changePositive: true },
     { label: 'Proposals Sent', value: data.proposalsSent },

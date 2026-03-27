@@ -7,6 +7,37 @@
 import { createScriptClient } from '../src/lib/supabase/server'
 import { searchPlaces, getPlaceDetails, scoreLead } from '../src/lib/google-places'
 
+/** Try to extract a business email from their website homepage */
+async function extractEmailFromWebsite(url: string): Promise<string | null> {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 4000)
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InnieAI/1.0)' },
+    })
+    clearTimeout(timeout)
+    if (!res.ok) return null
+    const html = await res.text()
+    // Match email addresses, skip common no-reply/privacy patterns
+    const matches = html.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g) ?? []
+    const filtered = matches.filter((e) =>
+      !e.includes('example.') &&
+      !e.startsWith('no-reply') &&
+      !e.startsWith('noreply') &&
+      !e.startsWith('donotreply') &&
+      !e.includes('sentry.io') &&
+      !e.includes('w3.org') &&
+      !e.includes('schema.org') &&
+      !e.endsWith('.png') &&
+      !e.endsWith('.jpg')
+    )
+    return filtered[0] ?? null
+  } catch {
+    return null
+  }
+}
+
 // ==================== CONFIGURATION ====================
 const TARGET_NICHES: { query: string; tag: string }[] = [
   { query: 'real estate agent', tag: 'real-estate' },
@@ -83,6 +114,12 @@ async function main() {
 
         const phone = details.formatted_phone_number?.replace(/\D/g, '') ?? null
 
+        // Try to extract email from website (critical: outreach won't fire without it)
+        let email: string | null = null
+        if (details.website) {
+          email = await extractEmailFromWebsite(details.website)
+        }
+
         // Dedup check
         if (phone) {
           const { data: existing } = await supabase
@@ -114,7 +151,7 @@ async function main() {
         const { error } = await supabase.from('leads').insert({
           company_name: details.name,
           contact_name: null,
-          email: null,
+          email,
           phone: phone,
           website: details.website ?? null,
           city: cityShort,
@@ -133,7 +170,7 @@ async function main() {
           console.error(`Failed to insert ${details.name}:`, error.message)
         } else {
           totalInserted++
-          console.log(`  ✓ Added: ${details.name} (score: ${score})`)
+          console.log(`  ✓ Added: ${details.name} (score: ${score}${email ? ', email found' : ', no email'})`)
         }
 
         // Rate limit: 1 request per 200ms

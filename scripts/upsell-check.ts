@@ -18,13 +18,16 @@ async function main() {
   const supabase = createScriptClient()
   const calcomLink = process.env.CALCOM_LINK ?? 'https://cal.com/innieai'
 
-  // Find clients eligible for upsell
+  // Find clients eligible for upsell:
+  // - Active, on upgradeable tier
+  // - Either never sent (upsell_sent = false) OR sent 30+ days ago (retry)
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString()
   const { data: clients } = await supabase
     .from('clients')
     .select('*')
     .eq('status', 'Active')
-    .eq('upsell_sent', false)
     .in('tier', ['Starter', 'Growth'])
+    .or(`upsell_sent.eq.false,upsell_sent_at.lt.${thirtyDaysAgo}`)
 
   if (!clients) return
 
@@ -69,10 +72,10 @@ async function main() {
       text: emailBody,
     })
 
-    // Mark as sent — never send again
+    // Record send timestamp — allows retry after 30 days
     await supabase
       .from('clients')
-      .update({ upsell_sent: true })
+      .update({ upsell_sent: true, upsell_sent_at: new Date().toISOString() })
       .eq('id', client.id)
 
     upsellsSent++

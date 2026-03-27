@@ -30,6 +30,22 @@ export async function POST(req: NextRequest) {
   const supabase = createServerClient()
   const stripe = getStripe()
 
+  // Idempotency: skip already-processed events (Stripe retries on non-2xx)
+  // Requires: CREATE TABLE stripe_events (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), event_id text UNIQUE NOT NULL, event_type text NOT NULL, created_at timestamptz DEFAULT now())
+  try {
+    const { data: processed } = await supabase
+      .from('stripe_events')
+      .select('id')
+      .eq('event_id', event.id)
+      .single()
+    if (processed) {
+      return NextResponse.json({ received: true, skipped: true })
+    }
+    await supabase.from('stripe_events').insert({ event_id: event.id, event_type: event.type })
+  } catch {
+    // Table not yet created — proceed without idempotency guard
+  }
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {

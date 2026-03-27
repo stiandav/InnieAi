@@ -33,21 +33,38 @@ async function main() {
   for (const client of clients as Client[]) {
     totalMrr += client.mrr
 
-    // Get week's data
+    // Get week's data — scope to client's niche so each client sees their own metrics
+    const leadsQuery = supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', startOfWeek)
+    if (client.niche && client.niche !== 'unknown') {
+      leadsQuery.eq('niche', client.niche)
+    }
+
+    // Scope emails to leads in this client's niche
+    const nicheLeadIds = client.niche && client.niche !== 'unknown'
+      ? await supabase
+          .from('leads')
+          .select('id')
+          .eq('niche', client.niche)
+          .not('sent_at', 'is', null)
+          .then(({ data }) => (data ?? []).map((r) => r.id as string))
+      : []
+
+    const emailsQuery = supabase
+      .from('email_sequences')
+      .select('opened_at, replied')
+      .not('sent_at', 'is', null)
+      .gte('sent_at', startOfWeek)
+    if (nicheLeadIds.length > 0) {
+      emailsQuery.in('lead_id', nicheLeadIds)
+    }
+
     const [
       { count: leadsGenerated },
       { data: emails },
-    ] = await Promise.all([
-      supabase
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', startOfWeek),
-      supabase
-        .from('email_sequences')
-        .select('opened_at, replied')
-        .not('sent_at', 'is', null)
-        .gte('sent_at', startOfWeek),
-    ])
+    ] = await Promise.all([leadsQuery, emailsQuery])
 
     const emailsSent = emails?.length ?? 0
     const emailsOpened = emails?.filter((e) => e.opened_at).length ?? 0
