@@ -42,6 +42,7 @@ const STEP_DAYS: Record<number, number> = {
   2: 3,  // Day 3: 3 days after step 1
   3: 7,  // Day 7: 7 days after step 1
   4: 14, // Day 14: 14 days after step 1
+  5: 30, // Re-engagement: 30 days after step 4
 }
 
 // Substitute {{variable}} placeholders in DB-stored template strings
@@ -85,22 +86,20 @@ async function sendFailureAlert(error: string) {
   )
 }
 
-async function shouldSendStep(lead: Lead, step: number, supabase: ReturnType<typeof createScriptClient>): Promise<boolean> {
+// Built from batch-fetched sequences — no per-lead DB queries in the loop
+function shouldSendStep(
+  lead: Lead,
+  step: number,
+  prevSequences: Map<string, { sent_at: string; unsubscribed: boolean; bounced: boolean; replied: boolean }>
+): boolean {
   if (step === 1) return lead.sequence_step === 0
 
-  const { data: prevEmail } = await supabase
-    .from('email_sequences')
-    .select('sent_at, unsubscribed, bounced, replied')
-    .eq('lead_id', lead.id)
-    .eq('step', step - 1)
-    .limit(1)
-    .single()
+  const prev = prevSequences.get(`${lead.id}:${step - 1}`)
+  if (!prev?.sent_at) return false
+  if (prev.unsubscribed || prev.bounced || prev.replied) return false
 
-  if (!prevEmail?.sent_at) return false
-  if (prevEmail.unsubscribed || prevEmail.bounced || prevEmail.replied) return false
-
-  const daysSince = (Date.now() - new Date(prevEmail.sent_at).getTime()) / 86400000
-  return daysSince >= STEP_DAYS[step]
+  const daysSince = (Date.now() - new Date(prev.sent_at).getTime()) / 86400000
+  return daysSince >= (STEP_DAYS[step] ?? 999)
 }
 
 async function main() {
@@ -132,11 +131,18 @@ async function main() {
 
   const leadIds = (leads as Lead[]).map((l) => l.id)
 
-  // Batch fetch unsubscribed and already-sent to avoid N+1
-  const [{ data: unsubRows }, { data: sentRows }] = await Promise.all([
+  // Batch fetch all sequence data — avoids N+1 queries in the loop
+  const [{ data: unsubRows }, { data: sentRows }, { data: prevRows }] = await Promise.all([
     supabase.from('email_sequences').select('lead_id').in('lead_id', leadIds).eq('unsubscribed', true),
     supabase.from('email_sequences').select('lead_id, step').in('lead_id', leadIds).not('sent_at', 'is', null),
+    supabase.from('email_sequences').select('lead_id, step, sent_at, unsubscribed, bounced, replied').in('lead_id', leadIds),
   ])
+
+  // Map of "lead_id:step" → sequence row for O(1) lookup in loop
+  const prevSequences = new Map<string, { sent_at: string; unsubscribed: boolean; bounced: boolean; replied: boolean }>()
+  for (const row of prevRows ?? []) {
+    if (row.sent_at) prevSequences.set(`${row.lead_id}:${row.step}`, row as { sent_at: string; unsubscribed: boolean; bounced: boolean; replied: boolean })
+  }
 
   const unsubSet = new Set((unsubRows ?? []).map((r) => r.lead_id as string))
   const sentSet = new Set((sentRows ?? []).map((r) => `${r.lead_id}:${r.step}`))
@@ -149,7 +155,7 @@ async function main() {
     const nextStep = lead.sequence_step + 1
     if (sentSet.has(`${lead.id}:${nextStep}`)) continue
 
-    const canSend = await shouldSendStep(lead, nextStep, supabase)
+    const canSend = shouldSendStep(lead, nextStep, prevSequences)
     if (!canSend) continue
 
     const unsubUrl = `${BASE_URL}/api/email/unsubscribe?token=${lead.id}`

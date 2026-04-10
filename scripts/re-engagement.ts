@@ -142,21 +142,26 @@ async function main() {
     await new Promise((r) => setTimeout(r, 500))
   }
 
-  // Mark remaining un-emailed leads as Invalid (exhausted outreach)
-  const { data: exhausted } = await supabase
-    .from('leads')
-    .select('id')
-    .in('id', leadIds)
-    .eq('status', 'Contacted')
-    .eq('re_engaged', true) // already re-engaged but still no reply after some time
-    .not('id', 'in', `(${leads.map((l) => `"${l.id}"`).join(',')})`)
+  // Mark leads that were already re_engaged=true (from a prior run) but still no reply as Invalid
+  const justSentIds = new Set((leads as Lead[]).map((l) => l.id))
+  const exhaustedIds = leadIds.filter((id) => !justSentIds.has(id))
 
-  if (exhausted && exhausted.length > 0) {
-    await supabase
+  if (exhaustedIds.length > 0) {
+    // Only mark exhausted if re_engaged=true (already got the re-engagement email)
+    const { data: exhausted } = await supabase
       .from('leads')
-      .update({ status: 'Invalid', notes: 'Exhausted 5-step sequence with no reply' })
-      .in('id', exhausted.map((l) => l.id as string))
-    console.log(`Marked ${exhausted.length} exhausted leads as Invalid`)
+      .select('id')
+      .in('id', exhaustedIds)
+      .eq('status', 'Contacted')
+      .eq('re_engaged', true)
+
+    if (exhausted && exhausted.length > 0) {
+      await supabase
+        .from('leads')
+        .update({ status: 'Invalid', notes: 'Exhausted 5-step sequence with no reply' })
+        .in('id', exhausted.map((l) => l.id as string))
+      console.log(`Marked ${exhausted.length} exhausted leads as Invalid`)
+    }
   }
 
   if (sent > 0) {

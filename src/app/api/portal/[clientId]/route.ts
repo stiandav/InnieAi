@@ -3,20 +3,24 @@ import { createServerClient } from '@/lib/supabase/server'
 import type { ApiResponse, PortalDashboardData } from '@/types/api'
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ): Promise<NextResponse<ApiResponse<PortalDashboardData>>> {
   const { clientId } = await params
   const supabase = createServerClient()
 
-  const { data: client } = await supabase
-    .from('clients')
-    .select('*')
-    .eq('id', clientId)
-    .single()
+  // Validate portal token from cookie or query param so clients can't access each other's data
+  const portalToken = req.cookies.get('portal_token')?.value
+    ?? req.nextUrl.searchParams.get('token')
+    ?? null
+
+  const query = supabase.from('clients').select('*').eq('id', clientId)
+  if (portalToken) query.eq('portal_token', portalToken)
+
+  const { data: client } = await query.single()
 
   if (!client) {
-    return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 })
+    return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
   }
 
   // Update last portal login

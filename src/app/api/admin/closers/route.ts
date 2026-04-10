@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 
-export async function GET() {
+function isAuthed(req: NextRequest): boolean {
+  const token = req.cookies.get('admin_token')?.value
+    ?? req.headers.get('x-admin-token')
+    ?? null
+  return token === process.env.ADMIN_SECRET
+}
+
+export async function GET(req: NextRequest) {
+  if (!isAuthed(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const supabase = createServerClient()
   const { data } = await supabase
     .from('closers')
@@ -11,6 +19,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAuthed(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const body = await req.json() as { name: string; email: string; commission_pct?: number }
   if (!body.name?.trim() || !body.email?.trim()) {
     return NextResponse.json({ error: 'Name and email are required' }, { status: 400 })
@@ -32,6 +41,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  if (!isAuthed(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id, is_active } = await req.json() as { id: string; is_active: boolean }
   const supabase = createServerClient()
   const { error } = await supabase

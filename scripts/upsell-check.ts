@@ -27,7 +27,7 @@ async function main() {
     .select('*')
     .eq('status', 'Active')
     .in('tier', ['Starter', 'Growth'])
-    .or(`upsell_sent.eq.false,upsell_sent_at.lt.${thirtyDaysAgo}`)
+    .or(`upsell_sent.eq.false,upsell_sent_at.is.null,upsell_sent_at.lt.${thirtyDaysAgo}`)
 
   if (!clients) return
 
