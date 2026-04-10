@@ -31,7 +31,7 @@ export async function sendEmail({
   replyTo?: string
 }): Promise<{ id: string } | null> {
   const resend = getResend()
-  const fromAddr = from ?? process.env.RESEND_FROM_EMAIL ?? 'Stian from InnieAI <stian@innieai.co>'
+  const fromAddr = from ?? process.env.RESEND_FROM_EMAIL ?? 'InnieAI <hello@innieai.co>'
 
   const headers: Record<string, string> = {}
   if (unsubscribeUrl) {

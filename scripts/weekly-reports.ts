@@ -48,7 +48,6 @@ async function main() {
           .from('leads')
           .select('id')
           .eq('niche', client.niche)
-          .not('sent_at', 'is', null)
           .then(({ data }) => (data ?? []).map((r) => r.id as string))
       : []
 

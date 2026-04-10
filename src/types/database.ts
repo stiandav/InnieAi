@@ -1,6 +1,7 @@
 export type LeadStatus =
   | 'Lead'
   | 'Contacted'
+  | 'Replied'
   | 'Proposal Sent'
   | 'Closed Won'
   | 'Active Client'
@@ -9,7 +10,7 @@ export type LeadStatus =
 
 export type ClientStatus = 'Onboarding' | 'Active' | 'Payment Issue' | 'Churned'
 
-export type ProposalStatus = 'Draft' | 'Sent' | 'Viewed' | 'Accepted' | 'Declined'
+export type ProposalStatus = 'Draft' | 'Sent' | 'Viewed' | 'Accepted' | 'Declined' | 'Pending Payment'
 
 export type Tier = 'Starter' | 'Growth' | 'Scale'
 
@@ -30,6 +31,8 @@ export interface Lead {
   sequence_step: number
   notes: string | null
   competitive_flag: boolean
+  re_engaged: boolean
+  auto_reply_count: number
   created_at: string
   updated_at: string
 }
@@ -52,12 +55,14 @@ export interface Client {
   last_portal_login: string | null
   upsell_sent: boolean
   ref_code: string | null
+  notes: string | null
   created_at: string
 }
 
 export interface Proposal {
   id: string
   client_name: string
+  client_email: string | null
   company: string
   niche: string
   pain_points: string
@@ -68,13 +73,15 @@ export interface Proposal {
   view_count: number
   stripe_checkout_url: string | null
   decline_reason: string | null
+  follow_up_sent_at: string | null
+  closer_id: string | null
   created_at: string
 }
 
 export interface EmailSequence {
   id: string
   lead_id: string
-  step: 1 | 2 | 3 | 4
+  step: 1 | 2 | 3 | 4 | 5
   subject: string
   body: string
   sent_at: string | null
@@ -83,6 +90,7 @@ export interface EmailSequence {
   replied: boolean
   bounced: boolean
   unsubscribed: boolean
+  resend_id: string | null
   created_at: string
 }
 
@@ -153,6 +161,25 @@ export interface Referral {
   created_at: string
 }
 
+export interface SupportTicket {
+  id: string
+  client_id: string
+  message: string
+  status: 'open' | 'resolved'
+  resolved_at: string | null
+  created_at: string
+}
+
+export interface Closer {
+  id: string
+  name: string
+  email: string
+  commission_pct: number
+  is_active: boolean
+  calls_assigned: number
+  created_at: string
+}
+
 type TableDef<Row, Insert, Update> = {
   Row: Row
   Insert: Insert
@@ -174,6 +201,8 @@ export interface Database {
       posts: TableDef<Post, Omit<Post, 'id' | 'created_at'>, Partial<Post>>
       affiliates: TableDef<Affiliate, Omit<Affiliate, 'id' | 'created_at'>, Partial<Affiliate>>
       referrals: TableDef<Referral, Omit<Referral, 'id' | 'created_at'>, Partial<Referral>>
+      support_tickets: TableDef<SupportTicket, Omit<SupportTicket, 'id' | 'created_at'>, Partial<SupportTicket>>
+      closers: TableDef<Closer, Omit<Closer, 'id' | 'created_at'>, Partial<Closer>>
     }
     Views: Record<string, never>
     Functions: Record<string, never>

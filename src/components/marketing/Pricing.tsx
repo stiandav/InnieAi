@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react'
 
+type StarterForm = { name: string; email: string; company: string }
+
 const plans = [
   {
     name: 'Starter',
@@ -62,6 +64,33 @@ const calcomLink = process.env.NEXT_PUBLIC_CALCOM_LINK || '#'
 
 export function Pricing() {
   const [showSetup, setShowSetup] = useState(false)
+  const [starterOpen, setStarterOpen] = useState(false)
+  const [starterForm, setStarterForm] = useState<StarterForm>({ name: '', email: '', company: '' })
+  const [starterLoading, setStarterLoading] = useState(false)
+  const [starterError, setStarterError] = useState('')
+
+  async function handleStarterCheckout(e: React.FormEvent) {
+    e.preventDefault()
+    setStarterLoading(true)
+    setStarterError('')
+    try {
+      const res = await fetch('/api/checkout/starter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(starterForm),
+      })
+      const data = await res.json() as { checkoutUrl?: string; error?: string }
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
+      } else {
+        setStarterError(data.error ?? 'Something went wrong. Please try again.')
+        setStarterLoading(false)
+      }
+    } catch {
+      setStarterError('Network error. Please try again.')
+      setStarterLoading(false)
+    }
+  }
 
   return (
     <section id="pricing" className="py-32 bg-canvas">
@@ -182,18 +211,72 @@ export function Pricing() {
                 ))}
               </ul>
 
-              <a
-                href={calcomLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`w-full text-center py-3.5 rounded-lg font-semibold text-sm transition-all ${
-                  plan.popular
-                    ? 'bg-brand hover:bg-brand-hover text-white hover:-translate-y-0.5 shadow-md shadow-brand/20'
-                    : 'bg-ink/5 hover:bg-ink/10 text-ink border border-ink/10'
-                }`}
-              >
-                {plan.cta} →
-              </a>
+              {plan.name === 'Starter' ? (
+                starterOpen ? (
+                  <form onSubmit={handleStarterCheckout} className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Your name"
+                      value={starterForm.name}
+                      onChange={(e) => setStarterForm({ ...starterForm, name: e.target.value })}
+                      required
+                      className="w-full border border-ink/15 rounded-lg px-3 py-2.5 text-sm text-ink placeholder-muted bg-white focus:outline-none focus:border-brand/50"
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email address"
+                      value={starterForm.email}
+                      onChange={(e) => setStarterForm({ ...starterForm, email: e.target.value })}
+                      required
+                      className="w-full border border-ink/15 rounded-lg px-3 py-2.5 text-sm text-ink placeholder-muted bg-white focus:outline-none focus:border-brand/50"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Business name"
+                      value={starterForm.company}
+                      onChange={(e) => setStarterForm({ ...starterForm, company: e.target.value })}
+                      className="w-full border border-ink/15 rounded-lg px-3 py-2.5 text-sm text-ink placeholder-muted bg-white focus:outline-none focus:border-brand/50"
+                    />
+                    {starterError && (
+                      <p className="text-red-600 text-xs">{starterError}</p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={starterLoading}
+                      className="w-full py-3 rounded-lg font-semibold text-sm bg-ink/5 hover:bg-ink/10 text-ink border border-ink/10 transition-all disabled:opacity-60"
+                    >
+                      {starterLoading ? 'Redirecting to checkout...' : 'Continue to checkout →'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStarterOpen(false)}
+                      className="w-full text-center text-muted/60 text-xs hover:text-muted transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    onClick={() => setStarterOpen(true)}
+                    className="w-full text-center py-3.5 rounded-lg font-semibold text-sm bg-ink/5 hover:bg-ink/10 text-ink border border-ink/10 transition-all"
+                  >
+                    {plan.cta} →
+                  </button>
+                )
+              ) : (
+                <a
+                  href={calcomLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-full text-center py-3.5 rounded-lg font-semibold text-sm transition-all ${
+                    plan.popular
+                      ? 'bg-brand hover:bg-brand-hover text-white hover:-translate-y-0.5 shadow-md shadow-brand/20'
+                      : 'bg-ink/5 hover:bg-ink/10 text-ink border border-ink/10'
+                  }`}
+                >
+                  {plan.cta} →
+                </a>
+              )}
             </div>
           ))}
         </div>

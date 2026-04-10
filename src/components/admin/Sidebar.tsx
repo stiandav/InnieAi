@@ -9,6 +9,8 @@ const navItems = [
   { href: '/admin/leads', label: 'Leads', icon: '◎' },
   { href: '/admin/clients', label: 'Clients', icon: '◈' },
   { href: '/admin/proposals', label: 'Proposals', icon: '◻' },
+  { href: '/admin/closers', label: 'Closers', icon: '◆' },
+  { href: '/admin/support', label: 'Support', icon: '◐' },
   { href: '/admin/billing', label: 'Billing', icon: '◇' },
   { href: '/admin/blog', label: 'Blog', icon: '◁' },
   { href: '/admin/affiliates', label: 'Affiliates', icon: '◉' },

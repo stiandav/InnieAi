@@ -19,9 +19,22 @@ import {
 } from '../src/lib/anthropic'
 import type { Lead } from '../src/types/database'
 
-const MAX_EMAILS_PER_DAY = 10 // warm-up: increase 5-10/day each week toward 40
 const CALCOM_LINK = process.env.CALCOM_LINK ?? 'https://cal.com/innieai'
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://innieai.co'
+
+// Load MAX_EMAILS_PER_DAY from the settings table so the growth engine can
+// scale volume automatically. Falls back to env var, then hardcoded safe default.
+async function getMaxEmailsPerDay(supabase: ReturnType<typeof createScriptClient>): Promise<number> {
+  try {
+    const { data } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'max_emails_per_day')
+      .single()
+    if (data?.value) return Math.max(1, parseInt(data.value))
+  } catch { /* table may not exist yet */ }
+  return parseInt(process.env.MAX_EMAILS_PER_DAY ?? '10')
+}
 
 // Step timing: days since last email in sequence
 const STEP_DAYS: Record<number, number> = {
@@ -93,6 +106,9 @@ async function shouldSendStep(lead: Lead, step: number, supabase: ReturnType<typ
 async function main() {
   const supabase = createScriptClient()
   let emailsSent = 0
+
+  const MAX_EMAILS_PER_DAY = await getMaxEmailsPerDay(supabase)
+  console.log(`Daily cap: ${MAX_EMAILS_PER_DAY} emails`)
 
   // Load optimized template variants from DB (if any exist)
   const variants = await loadActiveVariants(supabase)
@@ -198,18 +214,22 @@ async function main() {
 
     const trackingHtml = `<html><body><pre style="font-family:sans-serif;white-space:pre-wrap">${emailContent.body}</pre><img src="${BASE_URL}/api/track/open?id=${seqRecord.id}" width="1" height="1" /></body></html>`
 
+    // reply+{seqId}@innieai.co — Cloudflare Email Routing catches this, forwards to /api/webhooks/resend-inbound
+    const replyToAddr = `reply+${seqRecord.id}@innieai.co`
+
     const result = await sendEmail({
       to: lead.email,
       subject: emailContent.subject,
       text: emailContent.body,
       html: trackingHtml,
       unsubscribeUrl: unsubUrl,
+      replyTo: replyToAddr,
     })
 
     if (result?.id) {
       await supabase
         .from('email_sequences')
-        .update({ sent_at: new Date().toISOString() })
+        .update({ sent_at: new Date().toISOString(), resend_id: result.id })
         .eq('id', seqRecord.id)
 
       await supabase

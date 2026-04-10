@@ -126,7 +126,7 @@ async function main() {
     if (result?.id) {
       await supabase
         .from('email_sequences')
-        .update({ sent_at: new Date().toISOString() })
+        .update({ sent_at: new Date().toISOString(), resend_id: result.id })
         .eq('id', seqRecord.id)
 
       // Mark lead as re-engaged so we don't send again

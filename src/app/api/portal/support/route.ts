@@ -22,12 +22,20 @@ export async function POST(req: NextRequest) {
 
   if (!client) return NextResponse.json({ success: false }, { status: 404 })
 
+  // Store ticket in DB so it appears in the admin support queue
+  await supabase.from('support_tickets').insert({
+    client_id: clientId,
+    message,
+    status: 'open',
+  })
+
   const ownerEmail = process.env.OWNER_EMAIL
   if (ownerEmail) {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://innieai.co'
     await sendEmail({
       to: ownerEmail,
       subject: `Support: ${client.company} sent a message`,
-      text: `${client.name} at ${client.company} sent a support message:\n\n${message}\n\nClient email: ${client.email}`,
+      text: `${client.name} at ${client.company} sent a support message:\n\n${message}\n\nClient email: ${client.email}\n\nView all tickets: ${baseUrl}/admin/support`,
     })
   }
 

@@ -83,7 +83,7 @@ async function getSortedTargets(supabase: ReturnType<typeof createScriptClient>)
     const cityStats = new Map<string, { total: number; engaged: number }>()
 
     for (const lead of leads) {
-      const engaged = lead.status === 'Client' || lead.sequence_step >= 2
+      const engaged = lead.status === 'Active Client' || lead.status === 'Closed Won' || lead.sequence_step >= 2
 
       const ns = nicheStats.get(lead.niche) ?? { total: 0, engaged: 0 }
       ns.total++
@@ -137,7 +137,7 @@ async function sendFailureAlert(error: string) {
     const { Resend } = await import('resend')
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL ?? 'stian@innieai.co',
+      from: process.env.RESEND_FROM_EMAIL ?? 'hello@innieai.co',
       to: ownerEmail,
       subject: '⚠️ InnieAI Lead Gen Script Failed',
       text: `The daily lead generation script failed.\n\nError:\n${error}\n\nTimestamp: ${new Date().toISOString()}`,

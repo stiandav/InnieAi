@@ -11,6 +11,7 @@ export default function NewProposalPage() {
   const router = useRouter()
   const [form, setForm] = useState({
     clientName: '',
+    clientEmail: '',
     company: '',
     niche: '',
     painPoints: '',
@@ -102,6 +103,16 @@ export default function NewProposalPage() {
               required
             />
             <Input
+              label="Client Email"
+              type="email"
+              value={form.clientEmail}
+              onChange={(e) => setForm({ ...form, clientEmail: e.target.value })}
+              placeholder="sarah@johnsondental.com"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input
               label="Company"
               value={form.company}
               onChange={(e) => setForm({ ...form, company: e.target.value })}
@@ -113,6 +124,7 @@ export default function NewProposalPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
               label="Niche / Industry"
+
               value={form.niche}
               onChange={(e) => setForm({ ...form, niche: e.target.value })}
               placeholder="dental"

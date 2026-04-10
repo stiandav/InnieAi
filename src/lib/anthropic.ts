@@ -128,7 +128,7 @@ They have a churn score of ${params.churnScore}/10.
 They haven't logged into their portal in ${params.daysSinceLogin} days.
 Issue signal: ${params.issueSignal}
 
-The email should feel like it's from the InnieAI founder personally, not a template. Ask what's going on and offer a call.`,
+The email should feel like it's from a real person on the InnieAI team, not a template. Ask what's going on and offer a call.`,
     400
   )
 }
@@ -195,6 +195,88 @@ Rewrite this email to improve open rate and reply rate. Focus on the biggest wea
     return parsed
   } catch {
     throw new Error(`Claude returned non-JSON: ${result.slice(0, 200)}`)
+  }
+}
+
+export async function generateCloserBriefing(params: {
+  prospectName: string
+  prospectEmail: string
+  company: string
+  callTime: string
+  niche: string
+  city: string
+  rating: number | null
+  reviewCount: number
+  score: number
+  sequenceStep: number
+  customMessage: string
+}): Promise<string> {
+  return generateText(
+    `You write sharp, scannable sales call briefing documents for freelance sales closers.
+Plain text only. The closer has 2 minutes to read this before the call.
+Include: who they are, why they're valuable, what they've seen, talking points, likely objections, how to close.`,
+    `Write a sales call briefing for this inbound prospect:
+
+Name: ${params.prospectName}
+Company: ${params.company}
+Email: ${params.prospectEmail}
+Industry: ${params.niche}
+City: ${params.city}
+Call time: ${params.callTime}
+Google rating: ${params.rating ?? 'unknown'} stars (${params.reviewCount} reviews)
+Lead score: ${params.score}/100
+Email sequence step they're on: ${params.sequenceStep} of 4
+What they wrote when booking: "${params.customMessage || 'nothing'}"
+
+Write the briefing as: Background (2 sentences), What they need (2-3 bullets), Talking points (3 bullets), Likely objections + how to handle (2-3), How to close. Be specific.`,
+    600
+  )
+}
+
+export async function generateSalesReply(params: {
+  prospectName: string
+  company: string
+  niche: string
+  city: string
+  prospectMessage: string
+  previousEmails: Array<{ subject: string; body: string }>
+  calcomLink: string
+  senderName: string
+}): Promise<{ reply: string; intent: 'interested' | 'not_interested' | 'question' | 'unsubscribe' }> {
+  const result = await generateText(
+    `You are ${params.senderName} from InnieAI — an AI automation agency for local businesses.
+You are replying to a prospect who responded to your cold email outreach.
+Your goal: answer their question honestly, build trust, and get them to book a 15-minute call at ${params.calcomLink}.
+
+Rules:
+- Max 4 short paragraphs. Plain text, no formatting.
+- Sound like a real person, not a bot. Warm but direct.
+- If they ask a specific question, answer it specifically — don't dodge.
+- Always end with a soft CTA to book a call: ${params.calcomLink}
+- If they say they're not interested or ask to stop, do NOT reply — just set intent to "not_interested" or "unsubscribe".
+- If they seem ready to move forward, make it easy: just send the booking link.
+
+Return JSON: { "reply": "<plain text reply>", "intent": "interested|not_interested|question|unsubscribe" }`,
+    `Prospect: ${params.prospectName} at ${params.company} (${params.niche}, ${params.city})
+
+Our previous emails to them:
+${params.previousEmails.map((e, i) => `Email ${i + 1} — ${e.subject}:\n${e.body.slice(0, 300)}`).join('\n\n')}
+
+Their reply:
+"${params.prospectMessage}"
+
+Write a reply that moves this toward a booked call.`,
+    600
+  )
+
+  try {
+    const parsed = JSON.parse(result) as { reply: string; intent: string }
+    const intent = ['interested', 'not_interested', 'question', 'unsubscribe'].includes(parsed.intent)
+      ? (parsed.intent as 'interested' | 'not_interested' | 'question' | 'unsubscribe')
+      : 'question'
+    return { reply: parsed.reply, intent }
+  } catch {
+    return { reply: result, intent: 'question' }
   }
 }
 

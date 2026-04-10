@@ -10,13 +10,14 @@ export async function POST(
   try {
     const body = await req.json() as {
       clientName: string
+      clientEmail?: string
       company: string
       niche: string
       painPoints: string
       tier: 'Starter' | 'Growth' | 'Scale'
     }
 
-    const { clientName, company, niche, painPoints, tier } = body
+    const { clientName, clientEmail, company, niche, painPoints, tier } = body
 
     if (!clientName || !company || !niche || !painPoints || !tier) {
       return NextResponse.json(
@@ -43,6 +44,7 @@ export async function POST(
       .from('proposals')
       .insert({
         client_name: clientName,
+        client_email: clientEmail ?? null,
         company,
         niche,
         pain_points: painPoints,
