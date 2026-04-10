@@ -384,9 +384,9 @@ async function getMRRSnapshot(supabase: Supabase): Promise<{ mrr: number; client
 // ── 5. UGC creator recruitment ───────────────────────────────────────────────
 
 async function recruitUGCCreators(supabase: Supabase): Promise<string | null> {
-  // Only push UGC recruitment if we have enough MRR to fund it and haven't done so recently
+  // Start UGC recruitment as soon as there's any paying client
   const snapshot = await getMRRSnapshot(supabase)
-  if (snapshot.mrr < 3000) return null // needs at least $3k MRR before UGC makes sense
+  if (snapshot.mrr < 500) return null // needs at least one client
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString()
   const { data: recentUGC } = await supabase
@@ -453,11 +453,15 @@ Return JSON: { "title": "...", "content": "<html>", "metaDescription": "..." }`
 
 // ── 6. Autonomous ad spend ────────────────────────────────────────────────────
 
+// Estimated monthly costs (API keys, hosting, etc.) — adjust if needed
+const ESTIMATED_MONTHLY_COSTS = 200 // ~$200/mo for Resend + Supabase + Anthropic + Vercel
+
 async function runAdSpend(supabase: Supabase): Promise<string | null> {
   const snapshot = await getMRRSnapshot(supabase)
-  if (snapshot.mrr < 5000) return null // minimum MRR before autonomous ad spend
+  const profit = snapshot.mrr - ESTIMATED_MONTHLY_COSTS
+  if (profit <= 0) return null // not profitable yet — don't spend on ads
 
-  const growthBudget = Math.floor(snapshot.mrr * 0.2) // 20% of MRR
+  const growthBudget = Math.floor(profit * 0.3) // 30% of profit (more aggressive when small)
 
   // Check we haven't already run this week
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()

@@ -30,6 +30,8 @@ export default function OnboardPage({ params }: { params: Promise<{ token: strin
     mainContactPhone: '',
     monthlyRevenue: '',
     biggestBottleneck: '',
+    niche: '',
+    city: '',
   })
 
   useEffect(() => {
@@ -153,7 +155,33 @@ export default function OnboardPage({ params }: { params: Promise<{ token: strin
 
           {step === 2 && (
             <div className="bg-navy-light border border-white/[0.06] rounded-2xl p-8 space-y-6">
-              <h2 className="text-cream font-semibold text-lg">Your Tools & Revenue</h2>
+              <h2 className="text-cream font-semibold text-lg">Your Business</h2>
+              <Select
+                label="What type of business are you?"
+                value={form.niche}
+                onChange={(e) => setForm({ ...form, niche: e.target.value })}
+                options={[
+                  { value: '', label: 'Select your industry...' },
+                  { value: 'dental', label: 'Dental Practice' },
+                  { value: 'medspa', label: 'Med Spa / Aesthetics' },
+                  { value: 'gym', label: 'Gym / Fitness Studio' },
+                  { value: 'contractor', label: 'General Contractor' },
+                  { value: 'real-estate', label: 'Real Estate' },
+                  { value: 'law', label: 'Law Firm' },
+                  { value: 'chiropractic', label: 'Chiropractic' },
+                  { value: 'physio', label: 'Physical Therapy' },
+                  { value: 'accounting', label: 'Accounting / Finance' },
+                  { value: 'other', label: 'Other' },
+                ]}
+                required
+              />
+              <Input
+                label="What city are you in?"
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                placeholder="Austin, TX"
+                required
+              />
               <Textarea
                 label="What tools do you currently use? (CRM, scheduling, etc.)"
                 value={form.currentTools}

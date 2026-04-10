@@ -161,10 +161,57 @@ InnieAI`,
       `${prospectName} (${prospectEmail}) booked a call.\n\nAssigned to: ${closer.name} (${closer.email})\nCall time: ${callTime}\nCompany: ${company || 'N/A'}\n\nBriefing sent to closer.`
     )
   } else {
-    // No closers configured — alert owner to take the call themselves
+    // No closers — send owner a full action kit to hire one fast
     await sendOwnerAlert(
-      `📅 New call booked: ${prospectName} @ ${callTime}`,
-      `${prospectName} (${prospectEmail}) booked a call.\n\nCompany: ${company || 'N/A'}\nCall time: ${callTime}\n\nNo closers configured — you'll need to take this one.\n\nTip: Add closers at ${baseUrl}/admin/closers to auto-assign future calls.\n\n---\nBRIEFING\n${briefing}\n\nCal.com: ${calcomLink}`
+      `🔥 URGENT: Call booked, no closer assigned — ${prospectName} @ ${callTime}`,
+      `${prospectName} (${prospectEmail}) just booked a sales call and you have no closer available.
+
+CALL DETAILS
+Name: ${prospectName}
+Email: ${prospectEmail}
+Company: ${company || 'N/A'}
+Time: ${callTime}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPTION 1 — HIRE A CLOSER NOW (10 mins)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Post this job on Upwork right now:
+https://www.upwork.com/nx/jobs/post/?q=sales+closer
+
+Job post title: Commission-Only Sales Closer — AI SaaS (15-min inbound calls)
+
+Job description to paste:
+---
+I need a sales closer for a 15-minute inbound call ASAP.
+
+The prospect has already expressed interest. You'll receive a full AI-generated briefing before the call — their background, pain points, objections, and exactly how to close.
+
+You only need to show up, read the briefing, and close.
+
+Pay: 20% of setup fee ($300 on a $1,500 close, up to $500 on a $2,500 close). Paid same day via Upwork.
+
+Requirements:
+- Available for a call at or before: ${callTime}
+- Experience closing B2B SaaS or services
+- Professional, reliable
+
+Apply with your availability and one example of a deal you've closed.
+---
+
+Once hired, add them at: ${baseUrl}/admin/closers
+They get portal access and you can reassign this call to them.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPTION 2 — TAKE THE CALL YOURSELF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Your Cal.com: ${calcomLink}
+
+BRIEFING FOR THE CALL:
+${briefing}
+
+After the call, create the proposal at: ${baseUrl}/closer
+(Use closer secret from your env vars)
+`
     )
   }
 
