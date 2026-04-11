@@ -17,14 +17,19 @@ async function getDashboardData() {
     startOfThisMonth.setDate(1)
     startOfThisMonth.setHours(0, 0, 0, 0)
 
+    const lastWeekStart = new Date(Date.now() - 7 * 86400000).toISOString()
+    const twoWeeksStart = new Date(Date.now() - 14 * 86400000).toISOString()
+
     const [
       { data: clients },
-      { data: leads },
+      { count: leadsThisWeek },
+      { count: leadsLastWeek },
       { data: proposals },
       { data: lastMonthClients },
     ] = await Promise.all([
       supabase.from('clients').select('*').in('status', ['Active', 'Onboarding', 'Payment Issue']),
-      supabase.from('leads').select('id, created_at').gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
+      supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', lastWeekStart),
+      supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', twoWeeksStart).lt('created_at', lastWeekStart),
       supabase.from('proposals').select('*').order('created_at', { ascending: false }),
       supabase.from('clients').select('mrr').eq('status', 'Active').lt('created_at', startOfThisMonth.toISOString()),
     ])
@@ -38,7 +43,7 @@ async function getDashboardData() {
     const mrrDelta = mrr - lastMrr
     const mrrChange = mrrDelta === 0
       ? 'No change vs last month'
-      : `${mrrDelta > 0 ? '+' : ''}$${Math.abs(mrrDelta / 100).toLocaleString()} vs last month`
+      : `${mrrDelta > 0 ? '+' : ''}$${Math.abs(mrrDelta).toLocaleString()} vs last month`
 
     const proposalsSent = allProposals.filter(p => p.status !== 'Draft').length
     const proposalsAccepted = allProposals.filter(p => p.status === 'Accepted').length
@@ -82,12 +87,21 @@ async function getDashboardData() {
       })
     }
 
+    const thisWeek = leadsThisWeek ?? 0
+    const lastWeek = leadsLastWeek ?? 0
+    const leadsDelta = thisWeek - lastWeek
+    const leadsChange = lastWeek === 0
+      ? null
+      : `${leadsDelta >= 0 ? '+' : ''}${leadsDelta} vs last week`
+
     return {
       mrr,
       mrrChange,
       mrrChangePositive: mrrDelta >= 0,
       activeClientCount: activeClients.length,
-      leadsThisWeek: (leads ?? []).length,
+      leadsThisWeek: thisWeek,
+      leadsChange,
+      leadsChangePositive: leadsDelta >= 0,
       proposalsSent,
       closeRate,
       actionItems,
@@ -99,6 +113,8 @@ async function getDashboardData() {
       mrrChangePositive: true,
       activeClientCount: 0,
       leadsThisWeek: 0,
+      leadsChange: null,
+      leadsChangePositive: true,
       proposalsSent: 0,
       closeRate: 0,
       actionItems: [],
@@ -110,9 +126,9 @@ export default async function AdminDashboard() {
   const data = await getDashboardData()
 
   const kpis = [
-    { label: 'MRR', value: `$${(data.mrr / 100).toLocaleString()}`, change: data.mrrChange, changePositive: data.mrrChangePositive },
+    { label: 'MRR', value: `$${data.mrr.toLocaleString()}`, change: data.mrrChange, changePositive: data.mrrChangePositive },
     { label: 'Active Clients', value: data.activeClientCount },
-    { label: 'Leads This Week', value: data.leadsThisWeek, change: 'vs 47 last week', changePositive: true },
+    { label: 'Leads This Week', value: data.leadsThisWeek, change: data.leadsChange ?? undefined, changePositive: data.leadsChangePositive },
     { label: 'Proposals Sent', value: data.proposalsSent },
     { label: 'Close Rate', value: `${data.closeRate}%` },
   ]
