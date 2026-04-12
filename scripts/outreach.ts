@@ -163,65 +163,60 @@ async function main() {
     // Check for an AI-optimized variant first, fall back to static template
     const variant = getVariantForLead(variants, nextStep, lead.niche)
 
-    let emailContent: { subject: string; body: string }
-    try {
-      if (variant) {
-        // Fill {{placeholders}} in the stored variant
-        const templateVars: Record<string, string> = {
-          first_name: lead.contact_name?.split(' ')[0] ?? lead.company_name,
-          company_name: lead.company_name,
-          city: lead.city,
-          niche: lead.niche,
-          calcom_link: CALCOM_LINK,
-          unsub_link: unsubUrl,
-          personalized_opener: nextStep === 1
-            ? await generateOutreachOpener(lead.company_name, lead.niche, lead.city, lead.rating, lead.review_count)
-            : '',
-          niche_insight: nextStep === 2
-            ? await generateNicheInsight(lead.niche, lead.city)
-            : '',
-        }
-        emailContent = {
-          subject: fillTemplate(variant.subject, templateVars),
-          body: fillTemplate(variant.body, templateVars),
-        }
-      } else {
-        // Static templates
-        if (nextStep === 1) {
-          const opener = await generateOutreachOpener(lead.company_name, lead.niche, lead.city, lead.rating, lead.review_count)
-          emailContent = getDay1Email(lead, opener, CALCOM_LINK)
-        } else if (nextStep === 2) {
-          const insight = await generateNicheInsight(lead.niche, lead.city)
-          emailContent = getDay3Email(lead, insight, CALCOM_LINK)
-        } else if (nextStep === 3) {
-          emailContent = getDay7Email(lead, CALCOM_LINK)
-        } else {
-          emailContent = getDay14Email(lead, CALCOM_LINK)
-        }
+    // Pre-generate AI content with fallbacks — never skip a lead due to AI failure
+    let opener = ''
+    let insight = ''
+    if (nextStep === 1) {
+      try {
+        opener = await generateOutreachOpener(lead.company_name, lead.niche, lead.city, lead.rating, lead.review_count)
+      } catch (err) {
+        console.warn(`Opener generation failed for ${lead.company_name}, using fallback:`, (err as Error).message)
       }
-    } catch (err) {
-      console.error(`Failed to generate email for ${lead.company_name}:`, err)
-      continue
+    }
+    if (nextStep === 2) {
+      try {
+        insight = await generateNicheInsight(lead.niche, lead.city)
+      } catch (err) {
+        console.warn(`Insight generation failed for ${lead.company_name}, using fallback:`, (err as Error).message)
+      }
     }
 
-    const { data: seqRecord } = await supabase
-      .from('email_sequences')
-      .insert({
-        lead_id: lead.id,
-        step: nextStep,
-        subject: emailContent.subject,
-        body: emailContent.body,
-        sent_at: null,
-      })
-      .select()
-      .single()
+    let emailContent: { subject: string; body: string }
+    if (variant) {
+      // Fill {{placeholders}} in the stored variant
+      const templateVars: Record<string, string> = {
+        first_name: lead.contact_name?.split(' ')[0] ?? lead.company_name,
+        company_name: lead.company_name,
+        city: lead.city,
+        niche: lead.niche,
+        calcom_link: CALCOM_LINK,
+        unsub_link: unsubUrl,
+        personalized_opener: opener,
+        niche_insight: insight,
+      }
+      emailContent = {
+        subject: fillTemplate(variant.subject, templateVars),
+        body: fillTemplate(variant.body, templateVars),
+      }
+    } else {
+      // Static templates
+      if (nextStep === 1) {
+        emailContent = getDay1Email(lead, opener, CALCOM_LINK)
+      } else if (nextStep === 2) {
+        emailContent = getDay3Email(lead, insight, CALCOM_LINK)
+      } else if (nextStep === 3) {
+        emailContent = getDay7Email(lead, CALCOM_LINK)
+      } else {
+        emailContent = getDay14Email(lead, CALCOM_LINK)
+      }
+    }
 
-    if (!seqRecord) continue
-
-    const trackingHtml = `<html><body><pre style="font-family:sans-serif;white-space:pre-wrap">${emailContent.body}</pre><img src="${BASE_URL}/api/track/open?id=${seqRecord.id}" width="1" height="1" /></body></html>`
+    // Pre-generate a UUID so the tracking pixel and reply-to work before the DB insert
+    const seqId = crypto.randomUUID()
+    const trackingHtml = `<html><body><pre style="font-family:sans-serif;white-space:pre-wrap">${emailContent.body}</pre><img src="${BASE_URL}/api/track/open?id=${seqId}" width="1" height="1" /></body></html>`
 
     // reply+{seqId}@innieai.co — Cloudflare Email Routing catches this, forwards to /api/webhooks/resend-inbound
-    const replyToAddr = `reply+${seqRecord.id}@innieai.co`
+    const replyToAddr = `reply+${seqId}@innieai.co`
 
     const result = await sendEmail({
       to: lead.email,
@@ -233,10 +228,18 @@ async function main() {
     })
 
     if (result?.id) {
+      // Only record in DB after confirmed send — no orphaned null records
       await supabase
         .from('email_sequences')
-        .update({ sent_at: new Date().toISOString(), resend_id: result.id })
-        .eq('id', seqRecord.id)
+        .insert({
+          id: seqId,
+          lead_id: lead.id,
+          step: nextStep,
+          subject: emailContent.subject,
+          body: emailContent.body,
+          sent_at: new Date().toISOString(),
+          resend_id: result.id,
+        })
 
       await supabase
         .from('leads')
@@ -245,6 +248,8 @@ async function main() {
 
       emailsSent++
       console.log(`✓ Sent step ${nextStep} to ${lead.company_name} (${lead.email})${variant ? ' [optimized]' : ''}`)
+    } else {
+      console.warn(`✗ Send failed for ${lead.company_name} (${lead.email})`)
     }
 
     await new Promise((r) => setTimeout(r, 500))

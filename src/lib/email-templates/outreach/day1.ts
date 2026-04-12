@@ -3,7 +3,10 @@ import type { Lead } from '@/types/database'
 export function getDay1Email(lead: Lead, personalizedFirstLine: string, calcomLink: string): { subject: string; body: string } {
   const unsubLink = `${process.env.NEXT_PUBLIC_BASE_URL}/api/email/unsubscribe?token=${lead.id}`
 
-  const body = `${personalizedFirstLine}
+  const firstLine = personalizedFirstLine?.trim()
+    || `${lead.company_name} came up as we were looking at ${lead.niche} businesses in ${lead.city}.`
+
+  const body = `${firstLine}
 
 Most ${lead.niche} businesses in ${lead.city} are leaving leads on the table with slow follow-up. We fix that automatically.
 
