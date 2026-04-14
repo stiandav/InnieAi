@@ -129,7 +129,7 @@ export default async function AdminDashboard() {
     { label: 'MRR', value: `$${data.mrr.toLocaleString()}`, change: data.mrrChange, changePositive: data.mrrChangePositive },
     { label: 'Active Clients', value: data.activeClientCount },
     { label: 'Leads This Week', value: data.leadsThisWeek, change: data.leadsChange ?? undefined, changePositive: data.leadsChangePositive },
-    { label: 'Proposals Sent', value: data.proposalsSent },
+    { label: 'Proposals (All Time)', value: data.proposalsSent },
     { label: 'Close Rate', value: `${data.closeRate}%` },
   ]
 

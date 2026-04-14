@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { sendEmail, sendOwnerAlert } from '@/lib/resend'
-import { generateCloserBriefing } from '@/lib/anthropic'
+import { generateCloserBriefing, generateProposalDraft } from '@/lib/anthropic'
 
 type CalcomAttendee = {
   name: string
@@ -84,10 +84,12 @@ export async function POST(req: NextRequest) {
     .eq('email', prospectEmail)
     .single()
 
-  // Generate briefing with Claude
+  // Generate briefing + proposal draft in parallel
   let briefing = ''
-  try {
-    briefing = await generateCloserBriefing({
+  let proposalId: string | null = null
+
+  const [briefingResult, draftResult] = await Promise.allSettled([
+    generateCloserBriefing({
       prospectName,
       prospectEmail,
       company: company || prospectName,
@@ -99,10 +101,58 @@ export async function POST(req: NextRequest) {
       score: lead?.score ?? 0,
       sequenceStep: lead?.sequence_step ?? 0,
       customMessage,
-    })
-  } catch (err) {
-    console.error('Failed to generate briefing:', err)
-    briefing = `[Briefing generation failed]\n\nProspect: ${prospectName} (${prospectEmail})\nCompany: ${company}\nCall time: ${callTime}`
+    }),
+    generateProposalDraft({
+      prospectName,
+      company: company || prospectName,
+      niche: lead?.niche ?? 'unknown',
+      city: lead?.city ?? 'unknown',
+      rating: lead?.rating ?? null,
+      reviewCount: lead?.review_count ?? 0,
+      score: lead?.score ?? 0,
+      customMessage,
+    }),
+  ])
+
+  briefing = briefingResult.status === 'fulfilled'
+    ? briefingResult.value
+    : `[Briefing generation failed]\n\nProspect: ${prospectName} (${prospectEmail})\nCompany: ${company}\nCall time: ${callTime}`
+
+  // Auto-create a Draft proposal — ready for owner to review and send after the call
+  if (draftResult.status === 'fulfilled') {
+    const { tier, painPoints } = draftResult.value
+    const { PRICING } = await import('@/types')
+    const pricing = PRICING[tier]
+    const { generateProposal } = await import('@/lib/anthropic')
+    try {
+      const contentHtml = await generateProposal({
+        clientName: prospectName,
+        company: company || prospectName,
+        niche: lead?.niche ?? 'unknown',
+        painPoints,
+        tier,
+        monthlyPrice: pricing.monthly,
+        setupFee: pricing.setup,
+      })
+      const { data: proposal } = await supabase
+        .from('proposals')
+        .insert({
+          client_name: prospectName,
+          client_email: prospectEmail,
+          company: company || prospectName,
+          niche: lead?.niche ?? 'unknown',
+          pain_points: painPoints,
+          tier,
+          content_html: contentHtml,
+          status: 'Draft',
+          view_count: 0,
+        })
+        .select('id')
+        .single()
+      proposalId = proposal?.id ?? null
+    } catch (err) {
+      console.error('Failed to auto-create proposal:', err)
+    }
   }
 
   // Round-robin assign to an active closer
@@ -127,6 +177,10 @@ export async function POST(req: NextRequest) {
 
     // Email the closer with full briefing
     const commission = closer.commission_pct
+    const proposalLine = proposalId
+      ? `A draft proposal has been auto-generated. Review and send it after the call:\n${baseUrl}/admin/proposals`
+      : `After the call, create the proposal at:\n${baseUrl}/admin/proposals/new`
+
     await sendEmail({
       to: closer.email,
       subject: `Sales call: ${prospectName} @ ${callTime}`,
@@ -146,8 +200,7 @@ ${briefing}
 
 ---
 HOW TO CLOSE
-When the prospect is ready to move forward, generate a proposal at:
-${baseUrl}/admin/proposals/new
+${proposalLine}
 
 Your commission: ${commission}% of the setup fee on close.
 Questions? Reply to this email or check the admin dashboard.
@@ -158,7 +211,7 @@ InnieAI`,
 
     await sendOwnerAlert(
       `📅 Call assigned to ${closer.name}: ${prospectName} @ ${callTime}`,
-      `${prospectName} (${prospectEmail}) booked a call.\n\nAssigned to: ${closer.name} (${closer.email})\nCall time: ${callTime}\nCompany: ${company || 'N/A'}\n\nBriefing sent to closer.`
+      `${prospectName} (${prospectEmail}) booked a call.\n\nAssigned to: ${closer.name} (${closer.email})\nCall time: ${callTime}\nCompany: ${company || 'N/A'}\n\nBriefing sent to closer.${proposalId ? `\n\nDraft proposal ready: ${baseUrl}/admin/proposals` : ''}`
     )
   } else {
     // No closers — send owner a full action kit to hire one fast
@@ -209,8 +262,9 @@ Your Cal.com: ${calcomLink}
 BRIEFING FOR THE CALL:
 ${briefing}
 
-After the call, create the proposal at: ${baseUrl}/closer
-(Use closer secret from your env vars)
+${proposalId
+  ? `DRAFT PROPOSAL READY — review and send after the call:\n${baseUrl}/admin/proposals`
+  : `After the call, create the proposal at: ${baseUrl}/admin/proposals/new`}
 `
     )
   }

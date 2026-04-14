@@ -198,6 +198,40 @@ Rewrite this email to improve open rate and reply rate. Focus on the biggest wea
   }
 }
 
+export async function generateProposalDraft(params: {
+  prospectName: string
+  company: string
+  niche: string
+  city: string
+  rating: number | null
+  reviewCount: number
+  score: number
+  customMessage: string
+}): Promise<{ tier: 'Starter' | 'Growth' | 'Scale'; painPoints: string }> {
+  const result = await generateText(
+    `You are a sales strategist at InnieAI, an AI automation agency for local businesses.
+Given a prospect's details, recommend the best plan tier and write 2-3 sentences of pain points for their proposal.
+Plans: Starter ($1,500/mo) = lead gen + follow-up. Growth ($2,500/mo) = adds reputation automation + reporting. Scale ($4,000/mo) = adds AI customer support agent.
+Return JSON only: { "tier": "Starter"|"Growth"|"Scale", "painPoints": "string" }`,
+    `Prospect: ${params.prospectName} at ${params.company}
+Niche: ${params.niche}, City: ${params.city}
+Google rating: ${params.rating ?? 'unknown'} stars (${params.reviewCount} reviews)
+Lead score: ${params.score}/100
+What they wrote when booking: "${params.customMessage || 'nothing'}"
+
+Recommend a tier. For lower scores or no message, default to Starter. For engaged prospects with specific needs, recommend Growth. Scale only if they clearly need support automation.
+Write pain points specific to their niche and situation.`,
+    256
+  )
+  try {
+    const parsed = JSON.parse(result) as { tier: 'Starter' | 'Growth' | 'Scale'; painPoints: string }
+    if (!['Starter', 'Growth', 'Scale'].includes(parsed.tier)) parsed.tier = 'Starter'
+    return parsed
+  } catch {
+    return { tier: 'Starter', painPoints: `${params.company} is losing leads to slow follow-up and manual processes. Automating their lead gen and response system will directly increase booked appointments and revenue.` }
+  }
+}
+
 export async function generateCloserBriefing(params: {
   prospectName: string
   prospectEmail: string

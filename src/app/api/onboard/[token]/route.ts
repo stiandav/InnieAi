@@ -35,8 +35,11 @@ export async function POST(
     mainContactPhone: string
     monthlyRevenue: string
     biggestBottleneck: string
-    niche: string   // e.g. "dental", "gym", "contractor"
-    city: string    // e.g. "Austin, TX"
+    niche: string
+    city: string
+    businessPhone: string
+    bookingUrl: string
+    businessHours: string
   }
 
   // Basic length guards
@@ -48,7 +51,10 @@ export async function POST(
     body.mainContactPhone?.length > 30 ||
     body.monthlyRevenue?.length > 50 ||
     body.niche?.length > 100 ||
-    body.city?.length > 100
+    body.city?.length > 100 ||
+    body.businessPhone?.length > 30 ||
+    body.bookingUrl?.length > 200 ||
+    body.businessHours?.length > 200
   ) {
     return NextResponse.json({ success: false, error: 'Input too long' }, { status: 400 })
   }
@@ -69,7 +75,7 @@ export async function POST(
   const city = body.city?.trim() || ''
 
   // Save onboarding data as notes on the client
-  const notes = `Goals: ${body.goals}\nBottleneck: ${body.biggestBottleneck}\nTools: ${body.currentTools}\nRevenue: ${body.monthlyRevenue}\nContact: ${body.mainContact} (${body.mainContactPhone})\nNiche: ${niche}\nCity: ${city}`
+  const notes = `Goals: ${body.goals}\nBottleneck: ${body.biggestBottleneck}\nTools: ${body.currentTools}\nRevenue: ${body.monthlyRevenue}\nContact: ${body.mainContact} (${body.mainContactPhone})\nNiche: ${niche}\nCity: ${city}\nBusiness Phone: ${body.businessPhone || 'not provided'}\nBooking URL: ${body.bookingUrl || 'none'}\nBusiness Hours: ${body.businessHours || 'not provided'}`
 
   const { error } = await supabase
     .from('clients')
@@ -114,16 +120,42 @@ export async function POST(
   if (ownerEmail) {
     await sendEmail({
       to: ownerEmail,
-      subject: `🎉 ${client.company} completed onboarding`,
+      subject: `🎉 ${client.company} completed onboarding — GHL setup needed`,
       text: `${client.name} at ${client.company} just completed their onboarding questionnaire.
 
-${notes}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CLIENT INFO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Company: ${client.company}
+Name: ${client.name}
+Email: ${client.email}
+Tier: ${client.tier}
+Niche: ${niche}
+City: ${city || 'not provided'}
 
-They are now Active. Lead gen has been automatically configured to target:
+THEIR ANSWERS:
+Goals: ${body.goals}
+Bottleneck: ${body.biggestBottleneck}
+Tools they use: ${body.currentTools}
+Monthly revenue: ${body.monthlyRevenue}
+Main contact: ${body.mainContact} (${body.mainContactPhone})
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GHL SETUP CHECKLIST (~20 mins)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[ ] 1. Create new sub-account in GHL for ${client.company}
+[ ] 2. Clone your agency snapshot into the sub-account
+[ ] 3. Business phone to connect: ${body.businessPhone || 'not provided — ask client'}
+[ ] 4. Business hours to set: ${body.businessHours || 'not provided — ask client'}
+[ ] 5. Booking URL to wire up: ${body.bookingUrl || 'none — skip or create one in GHL'}
+[ ] 6. Send client their GHL portal login
+[ ] 7. Confirm automations are live (test a lead coming in)
+
+Lead gen is now automatically configured to target:
   Niche: ${niche}
   City: ${city || 'existing cities'}
 
-No action needed — the daily scripts will start working their niche tomorrow.`,
+The daily scripts will start working their niche tomorrow.`,
     })
   }
 

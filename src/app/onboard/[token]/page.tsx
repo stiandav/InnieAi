@@ -32,6 +32,9 @@ export default function OnboardPage({ params }: { params: Promise<{ token: strin
     biggestBottleneck: '',
     niche: '',
     city: '',
+    businessPhone: '',
+    bookingUrl: '',
+    businessHours: '',
   })
 
   useEffect(() => {
@@ -106,7 +109,7 @@ export default function OnboardPage({ params }: { params: Promise<{ token: strin
     )
   }
 
-  const totalSteps = 3
+  const totalSteps = 4
   const progress = ((step - 1) / totalSteps) * 100
 
   return (
@@ -231,6 +234,38 @@ export default function OnboardPage({ params }: { params: Promise<{ token: strin
               />
               <div className="flex gap-3">
                 <Button type="button" variant="secondary" onClick={() => setStep(2)}>Back</Button>
+                <Button type="button" onClick={() => setStep(4)} className="flex-1">Next →</Button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="bg-navy-light border border-white/[0.06] rounded-2xl p-8 space-y-6">
+              <h2 className="text-cream font-semibold text-lg">Automation Setup</h2>
+              <p className="text-cream/40 text-sm">This helps us configure your automations without any back-and-forth.</p>
+              <Input
+                label="Business phone number (the one customers call)"
+                value={form.businessPhone}
+                onChange={(e) => setForm({ ...form, businessPhone: e.target.value })}
+                placeholder="+1 (619) 555-0100"
+                type="tel"
+                required
+              />
+              <Input
+                label="Online booking link (if you have one)"
+                value={form.bookingUrl}
+                onChange={(e) => setForm({ ...form, bookingUrl: e.target.value })}
+                placeholder="https://calendly.com/yourbusiness or leave blank"
+              />
+              <Input
+                label="Business hours"
+                value={form.businessHours}
+                onChange={(e) => setForm({ ...form, businessHours: e.target.value })}
+                placeholder="Mon–Fri 9am–6pm, Sat 10am–2pm"
+                required
+              />
+              <div className="flex gap-3">
+                <Button type="button" variant="secondary" onClick={() => setStep(3)}>Back</Button>
                 <Button type="submit" loading={submitting} className="flex-1" size="lg">
                   Complete Onboarding →
                 </Button>
