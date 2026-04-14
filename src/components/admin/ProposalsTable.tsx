@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import type { Proposal } from '@/types/database'
 import { Badge } from '@/components/ui/Badge'
@@ -15,6 +15,43 @@ const statusVariant: Record<Proposal['status'], 'default' | 'info' | 'warning' |
   Viewed: 'warning',
   Accepted: 'success',
   Declined: 'danger',
+  'Pending Payment': 'warning',
+}
+
+function SendButton({ proposalId, clientEmail }: { proposalId: string; clientEmail: string | null }) {
+  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
+
+  async function send() {
+    if (!clientEmail) {
+      alert('No email on this proposal — edit it to add one first.')
+      return
+    }
+    setState('sending')
+    try {
+      const res = await fetch(`/api/proposals/${proposalId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send' }),
+      })
+      const data = await res.json() as { success: boolean }
+      setState(data.success ? 'done' : 'error')
+    } catch {
+      setState('error')
+    }
+  }
+
+  if (state === 'done') return <span className="text-green-400 text-xs">Sent ✓</span>
+  if (state === 'error') return <span className="text-red-400 text-xs">Failed</span>
+
+  return (
+    <button
+      onClick={send}
+      disabled={state === 'sending'}
+      className="text-accent text-xs hover:underline disabled:opacity-50"
+    >
+      {state === 'sending' ? 'Sending…' : 'Send →'}
+    </button>
+  )
 }
 
 export function ProposalsTable({ proposals }: ProposalsTableProps) {
@@ -46,13 +83,18 @@ export function ProposalsTable({ proposals }: ProposalsTableProps) {
                 {new Date(p.created_at).toLocaleDateString()}
               </td>
               <td className="py-4 pr-4">
-                <Link
-                  href={`/proposal/${p.id}`}
-                  target="_blank"
-                  className="text-accent text-xs hover:underline"
-                >
-                  View →
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href={`/proposal/${p.id}`}
+                    target="_blank"
+                    className="text-cream/40 text-xs hover:text-cream/70 hover:underline"
+                  >
+                    Preview
+                  </Link>
+                  {(p.status === 'Draft' || p.status === 'Sent' || p.status === 'Viewed') && (
+                    <SendButton proposalId={p.id} clientEmail={p.client_email} />
+                  )}
+                </div>
               </td>
             </tr>
           ))}
