@@ -41,7 +41,9 @@ async function extractEmailFromWebsite(url: string): Promise<string | null> {
 }
 
 // ==================== CONFIGURATION ====================
-const BASE_NICHES: { query: string; tag: string }[] = [
+// Fallback niche/city config — overridden by the settings table at runtime.
+// The settings table is populated automatically when clients onboard.
+const FALLBACK_NICHES: { query: string; tag: string }[] = [
   { query: 'dental office', tag: 'dental' },
   { query: 'medical spa', tag: 'medspa' },
   { query: 'gym fitness studio', tag: 'gym' },
@@ -50,7 +52,25 @@ const BASE_NICHES: { query: string; tag: string }[] = [
   { query: 'law firm', tag: 'law' },
 ]
 
-const BASE_CITIES = [
+// Map niche tag → Google Places search query
+const NICHE_QUERY_MAP: Record<string, string> = {
+  dental: 'dental office',
+  medspa: 'medical spa',
+  gym: 'gym fitness studio',
+  contractor: 'general contractor',
+  'real-estate': 'real estate agent',
+  law: 'law firm',
+  chiropractic: 'chiropractic office',
+  physio: 'physical therapy clinic',
+  accounting: 'accounting firm',
+  vet: 'veterinary clinic',
+  insurance: 'insurance agency',
+  'auto-repair': 'auto repair shop',
+  'marketing-agency': 'marketing agency',
+  finance: 'financial advisor',
+}
+
+const FALLBACK_CITIES = [
   'San Diego, CA',
   'Los Angeles, CA',
   'Phoenix, AZ',
@@ -62,20 +82,39 @@ const MAX_PER_RUN = 100
 // =======================================================
 
 /**
- * Returns niches and cities sorted by historical conversion rate.
- * "Conversion" = lead ended up with status 'Contacted' or 'Client' (engaged).
- * Falls back to base order if insufficient data.
+ * Loads active niches and cities from the settings table (populated by onboarding
+ * and growth engine), then sorts by historical conversion rate.
  */
 async function getSortedTargets(supabase: ReturnType<typeof createScriptClient>) {
   try {
+    // Read live targets from settings table — updated automatically when clients onboard
+    const [{ data: nicheRow }, { data: cityRow }] = await Promise.all([
+      supabase.from('settings').select('value').eq('key', 'base_niches').single(),
+      supabase.from('settings').select('value').eq('key', 'base_cities').single(),
+    ])
+
+    const activeNicheTags = (nicheRow?.value ?? '')
+      .split(',').map((n: string) => n.trim()).filter(Boolean)
+    const activeCities = (cityRow?.value ?? '')
+      .split(',').map((c: string) => c.trim()).filter(Boolean)
+
+    // Build niche objects from tags — fall back to hardcoded list if settings empty
+    const baseNiches = activeNicheTags.length > 0
+      ? activeNicheTags.map((tag: string) => ({
+          query: NICHE_QUERY_MAP[tag] ?? tag.replace(/-/g, ' '),
+          tag,
+        }))
+      : FALLBACK_NICHES
+
+    const baseCities = activeCities.length > 0 ? activeCities : FALLBACK_CITIES
+
     const { data: leads } = await supabase
       .from('leads')
       .select('niche, city, status, sequence_step')
       .not('email', 'is', null)
 
     if (!leads || leads.length < 50) {
-      // Not enough data yet — use base order
-      return { niches: BASE_NICHES, cities: BASE_CITIES }
+      return { niches: baseNiches, cities: baseCities }
     }
 
     // Score niches: weight by (replies + conversions) / total leads
@@ -97,20 +136,20 @@ async function getSortedTargets(supabase: ReturnType<typeof createScriptClient>)
       cityStats.set(cityShort, cs)
     }
 
-    const nicheScores = BASE_NICHES.map((n) => {
+    const nicheScores = baseNiches.map((n: { query: string; tag: string }) => {
       const stats = nicheStats.get(n.tag)
       const rate = stats && stats.total >= 5 ? stats.engaged / stats.total : 0.5
       return { ...n, rate }
     })
-    nicheScores.sort((a, b) => b.rate - a.rate)
+    nicheScores.sort((a: { rate: number }, b: { rate: number }) => b.rate - a.rate)
 
-    const cityScores = BASE_CITIES.map((c) => {
+    const cityScores = baseCities.map((c: string) => {
       const cityShort = c.split(',')[0].trim()
       const stats = cityStats.get(cityShort)
       const rate = stats && stats.total >= 5 ? stats.engaged / stats.total : 0.5
       return { city: c, rate }
     })
-    cityScores.sort((a, b) => b.rate - a.rate)
+    cityScores.sort((a: { rate: number }, b: { rate: number }) => b.rate - a.rate)
 
     const topNiche = nicheScores[0]
     const topCity = cityScores[0]
@@ -123,10 +162,10 @@ async function getSortedTargets(supabase: ReturnType<typeof createScriptClient>)
 
     return {
       niches: nicheScores,
-      cities: cityScores.map((c) => c.city),
+      cities: cityScores.map((c: { city: string }) => c.city),
     }
   } catch {
-    return { niches: BASE_NICHES, cities: BASE_CITIES }
+    return { niches: FALLBACK_NICHES, cities: FALLBACK_CITIES }
   }
 }
 

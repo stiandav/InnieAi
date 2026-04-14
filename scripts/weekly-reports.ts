@@ -88,11 +88,14 @@ async function main() {
       continue
     }
 
-    // Save report
+    const sentAt = new Date().toISOString()
+
+    // Save report with sent_at so churn-check can query open rates
     await supabase.from('reports').insert({
       client_id: client.id,
       week_of: weekOf,
       content: reportContent,
+      sent_at: sentAt,
     })
 
     // Send to client
@@ -120,7 +123,7 @@ async function main() {
   if (ownerEmail) {
     const summary = `Weekly Business Report — ${weekOf}
 
-Total MRR: $${(totalMrr / 100).toLocaleString()}
+Total MRR: $${totalMrr.toLocaleString()}
 Active Clients: ${clients.length}
 Reports Sent: ${reportsGenerated}
 

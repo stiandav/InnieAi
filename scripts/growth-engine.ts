@@ -532,7 +532,7 @@ Format as plain text, clearly labelled per niche.`
       text: `InnieAI Growth Engine — Weekly Ad Brief
 
 MRR: $${snapshot.mrr.toLocaleString()}
-Growth budget (20%): $${growthBudget}/month
+Growth budget (30% of profit): $${growthBudget}/month
 Top-performing niches: ${topNiches.join(', ')}
 
 ──────────────────────────────────────────

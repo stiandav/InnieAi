@@ -55,6 +55,7 @@ export interface Client {
   last_portal_login: string | null
   upsell_sent: boolean
   upsell_sent_at: string | null
+  churn_email_sent_at: string | null
   ref_code: string | null
   notes: string | null
   created_at: string

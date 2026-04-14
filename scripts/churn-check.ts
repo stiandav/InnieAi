@@ -65,6 +65,16 @@ async function main() {
       .eq('id', client.id)
 
     if (newScore >= 7) {
+      // Throttle: max one churn email per 7 days per client
+      const lastSent = (client as Client & { churn_email_sent_at?: string | null }).churn_email_sent_at
+      if (lastSent) {
+        const daysSinceLast = (Date.now() - new Date(lastSent).getTime()) / 86400000
+        if (daysSinceLast < 7) {
+          console.log(`Skipping ${client.company} — churn email sent ${Math.round(daysSinceLast)}d ago`)
+          continue
+        }
+      }
+
       const daysSinceLogin = client.last_portal_login
         ? Math.round((Date.now() - new Date(client.last_portal_login).getTime()) / 86400000)
         : 30
@@ -93,6 +103,11 @@ async function main() {
         subject: `Checking in — everything okay at ${client.company}?`,
         text: emailBody,
       })
+
+      await supabase
+        .from('clients')
+        .update({ churn_email_sent_at: new Date().toISOString() } as Record<string, unknown>)
+        .eq('id', client.id)
 
       savedCount++
       console.log(`✓ Churn save email sent to ${client.company} (score: ${newScore})`)

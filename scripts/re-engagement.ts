@@ -99,22 +99,8 @@ async function main() {
 
     const { subject, body } = getReEngagementEmail(lead)
 
-    // Insert sequence record
-    const { data: seqRecord } = await supabase
-      .from('email_sequences')
-      .insert({
-        lead_id: lead.id,
-        step: 5, // step 5 = re-engagement
-        subject,
-        body,
-        sent_at: null,
-      })
-      .select()
-      .single()
-
-    if (!seqRecord) continue
-
-    const trackingHtml = `<html><body><pre style="font-family:sans-serif;white-space:pre-wrap">${body}</pre><img src="${BASE_URL}/api/track/open?id=${seqRecord.id}" width="1" height="1" /></body></html>`
+    const seqId = crypto.randomUUID()
+    const trackingHtml = `<html><body><pre style="font-family:sans-serif;white-space:pre-wrap">${body}</pre><img src="${BASE_URL}/api/track/open?id=${seqId}" width="1" height="1" /></body></html>`
 
     const result = await sendEmail({
       to: lead.email,
@@ -124,10 +110,16 @@ async function main() {
     })
 
     if (result?.id) {
-      await supabase
-        .from('email_sequences')
-        .update({ sent_at: new Date().toISOString(), resend_id: result.id })
-        .eq('id', seqRecord.id)
+      // Insert only after confirmed send — no orphaned records
+      await supabase.from('email_sequences').insert({
+        id: seqId,
+        lead_id: lead.id,
+        step: 5,
+        subject,
+        body,
+        sent_at: new Date().toISOString(),
+        resend_id: result.id,
+      })
 
       // Mark lead as re-engaged so we don't send again
       await supabase

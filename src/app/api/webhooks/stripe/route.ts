@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
         // Notify owner
         await sendOwnerAlert(
           `🎉 New Client: ${clientName} signed up for ${tier}`,
-          `${clientName} at ${company} just paid the setup fee for ${tier}.\n\nSetup fee: $${(TIER_SETUP[tier] / 100).toLocaleString()}\nMonthly: $${(TIER_MRR[tier] / 100).toLocaleString()}/mo\n\nLog in to the admin dashboard to review.`
+          `${clientName} at ${company} just paid the setup fee for ${tier}.\n\nSetup fee: $${TIER_SETUP[tier].toLocaleString()}\nMonthly: $${TIER_MRR[tier].toLocaleString()}/mo\n\nLog in to the admin dashboard to review.`
         )
         break
       }

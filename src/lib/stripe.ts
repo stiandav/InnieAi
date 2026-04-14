@@ -23,14 +23,15 @@ export function getTierFromPriceId(priceId: string): 'Starter' | 'Growth' | 'Sca
   return map[priceId] ?? null
 }
 
+// Stored as dollars in the DB (consistent with PRICING in types/index.ts)
 export const TIER_MRR: Record<'Starter' | 'Growth' | 'Scale', number> = {
-  Starter: 150000, // in cents
-  Growth: 250000,
-  Scale: 400000,
+  Starter: 1500,
+  Growth: 2500,
+  Scale: 4000,
 }
 
 export const TIER_SETUP: Record<'Starter' | 'Growth' | 'Scale', number> = {
-  Starter: 150000,
-  Growth: 200000,
-  Scale: 250000,
+  Starter: 1500,
+  Growth: 2000,
+  Scale: 2500,
 }

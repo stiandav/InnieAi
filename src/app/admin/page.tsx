@@ -136,7 +136,7 @@ export default async function AdminDashboard() {
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-cream mb-1">Good morning.</h1>
+        <h1 className="text-2xl font-bold text-cream mb-1">{new Date().getHours() < 12 ? 'Good morning.' : new Date().getHours() < 17 ? 'Good afternoon.' : 'Good evening.'}</h1>
         <p className="text-cream/40 text-sm">Here&apos;s what needs your attention today.</p>
       </div>
 
